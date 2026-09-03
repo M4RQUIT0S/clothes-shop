@@ -42,3 +42,10 @@ y que un pedido se puede crear sin devolver la fila.
 
 Pasarela de pago, cuentas de usuario, panel de administración y descuento de stock.
 Son los siguientes pasos naturales, no descuidos: el checkout deja el hueco marcado para Stripe.
+
+## Despliegue
+
+Vercel construye desde `master`. Las variables de Supabase van en `.env.production`
+(committeado a propósito: son públicas por diseño). Si mueves el proyecto a otra
+instancia de Supabase, cambia ese fichero o define las mismas variables en
+Vercel → Settings → Environment Variables, que tienen prioridad.
