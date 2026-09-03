@@ -24,28 +24,33 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = data as Product
 
   return (
-    <article className="mx-auto grid max-w-6xl gap-12 px-6 py-12 md:grid-cols-2 md:py-20">
+    <article>
       <ProductImage
         src={product.image_url}
         alt={product.name}
         color={product.color}
-        sizes="(min-width: 768px) 50vw, 100vw"
+        sizes="100vw"
         priority
-        className="aspect-[4/5] w-full"
+        className="h-[72vh] w-full md:h-[88vh]"
       />
 
-      <div className="md:max-w-sm">
-        <Link
-          href={`/?categoria=${product.category}`}
-          className="text-xs uppercase tracking-widest text-ink/50 hover:text-ink"
-        >
-          {product.category}
-        </Link>
-        <h1 className="mt-3 font-display text-4xl leading-tight">{product.name}</h1>
-        <p className="mt-3 text-lg">{formatPrice(product.price_cents)}</p>
-        <p className="mt-6 text-ink/70">{product.description}</p>
+      <div className="mx-auto max-w-xl px-6 py-14">
+        <h1 className="text-[2rem] font-light leading-tight">{product.name}</h1>
+        <p className="mt-1 text-[1.1rem] text-muted">{formatPrice(product.price_cents)}</p>
+
         <div className="mt-10">
           <AddToCart product={product} />
+        </div>
+
+        <div className="mt-14 border-t border-line pt-8">
+          <p className="label mb-5 text-muted">Descripción</p>
+          <p className="text-[1.1rem] leading-relaxed">{product.description}</p>
+          <p className="mt-5 text-[1.1rem] leading-relaxed text-muted">
+            Categoría:{' '}
+            <Link href={`/?categoria=${product.category}`} className="italic text-ink underline underline-offset-4">
+              {product.category}
+            </Link>
+          </p>
         </div>
       </div>
     </article>

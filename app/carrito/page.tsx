@@ -42,13 +42,13 @@ export default function CartPage() {
 
   if (orderId) {
     return (
-      <section className="mx-auto max-w-xl px-6 py-24 text-center">
-        <h1 className="font-display text-4xl">Pedido confirmado</h1>
-        <p className="mt-4 text-ink/70">
-          Te hemos enviado los detalles por email. Referencia{' '}
-          <code className="text-ink">{orderId.slice(0, 8)}</code>.
+      <section className="mx-auto max-w-lg px-6 py-32 text-center">
+        <h1 className="text-[2.4rem] font-light">Pedido confirmado</h1>
+        <p className="mt-5 text-[1.1rem] text-muted">
+          Te hemos enviado los detalles por email. Tu referencia es{' '}
+          <span className="italic text-ink">{orderId.slice(0, 8)}</span>.
         </p>
-        <Link href="/" className="mt-8 inline-block border border-ink px-6 py-3 text-sm">
+        <Link href="/" className="label mt-10 inline-block border-b border-ink pb-1">
           Seguir comprando
         </Link>
       </section>
@@ -57,9 +57,10 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <section className="mx-auto max-w-xl px-6 py-24 text-center">
-        <h1 className="font-display text-4xl">Tu carrito está vacío</h1>
-        <Link href="/" className="mt-8 inline-block border border-ink px-6 py-3 text-sm">
+      <section className="mx-auto max-w-lg px-6 py-32 text-center">
+        <h1 className="text-[2.4rem] font-light">Tu cesta está vacía</h1>
+        <p className="mt-4 text-muted">Trece prendas esperando. Empieza por donde quieras.</p>
+        <Link href="/" className="label mt-10 inline-block border-b border-ink pb-1">
           Ver el catálogo
         </Link>
       </section>
@@ -67,25 +68,26 @@ export default function CartPage() {
   }
 
   return (
-    <section className="mx-auto grid max-w-6xl gap-16 px-6 py-12 md:grid-cols-[1.2fr_1fr] md:py-20">
+    <section className="mx-auto grid max-w-6xl gap-20 px-6 py-16 md:grid-cols-[1.15fr_1fr]">
       <div>
-        <h1 className="font-display text-4xl">Carrito</h1>
-        <ul className="mt-8 divide-y divide-ink/10 border-y border-ink/10">
+        <h1 className="text-[2.4rem] font-light">Cesta</h1>
+
+        <ul className="mt-10 divide-y divide-line border-y border-line">
           {items.map((item) => (
-            <li key={`${item.slug}-${item.size}`} className="flex gap-4 py-5">
+            <li key={`${item.slug}-${item.size}`} className="flex gap-5 py-6">
               <ProductImage
                 src={item.image_url}
                 alt={item.name}
                 color={item.color}
-                sizes="80px"
-                className="aspect-[4/5] w-20 shrink-0"
+                sizes="88px"
+                className="aspect-[3/4] w-22 shrink-0"
               />
               <div className="flex-1">
-                <Link href={`/producto/${item.slug}`} className="text-sm hover:underline">
+                <Link href={`/producto/${item.slug}`} className="text-[1.05rem] hover:italic">
                   {item.name}
                 </Link>
-                <p className="mt-1 text-xs text-ink/50">Talla {item.size}</p>
-                <div className="mt-3 flex items-center gap-3">
+                <p className="label mt-1 text-muted">Talla {item.size}</p>
+                <div className="mt-4 flex items-center gap-4">
                   <label className="sr-only" htmlFor={`qty-${item.slug}-${item.size}`}>
                     Cantidad de {item.name}
                   </label>
@@ -96,38 +98,42 @@ export default function CartPage() {
                     max={20}
                     value={item.qty}
                     onChange={(e) => setQty(item.slug, item.size, Number(e.target.value))}
-                    className="w-16 border border-ink/20 px-2 py-1 text-sm"
+                    className="w-14 border-b border-line bg-transparent pb-1 text-center text-[1rem] outline-none focus:border-ink"
                   />
                   <button
                     type="button"
                     onClick={() => remove(item.slug, item.size)}
-                    className="text-xs text-ink/50 underline underline-offset-4 hover:text-ink"
+                    className="label text-muted underline underline-offset-4 hover:text-ink"
                   >
                     Quitar
                   </button>
                 </div>
               </div>
-              <p className="text-sm tabular-nums">{formatPrice(item.qty * item.price_cents)}</p>
+              <p className="text-[1.05rem] tabular-nums">
+                {formatPrice(item.qty * item.price_cents)}
+              </p>
             </li>
           ))}
         </ul>
 
-        <dl className="mt-6 space-y-2 text-sm">
+        <dl className="mt-8 space-y-3 text-[1.05rem]">
           <Row label="Subtotal" value={formatPrice(total)} />
           <Row label="Envío" value={shipping === 0 ? 'Gratis' : formatPrice(shipping)} />
           <Row label="Total" value={formatPrice(total + shipping)} strong />
         </dl>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-4 self-start bg-sand p-8">
-        <h2 className="font-display text-2xl">Datos de envío</h2>
+      <form onSubmit={onSubmit} className="self-start">
+        <h2 className="text-[1.6rem] font-light">Datos de envío</h2>
 
-        <Field label="Nombre completo" name="full_name" autoComplete="name" />
-        <Field label="Email" name="email" type="email" autoComplete="email" />
-        <Field label="Dirección" name="address" autoComplete="street-address" />
+        <div className="mt-8 space-y-7">
+          <Field label="Nombre completo" name="full_name" autoComplete="name" />
+          <Field label="Email" name="email" type="email" autoComplete="email" />
+          <Field label="Dirección" name="address" autoComplete="street-address" />
+        </div>
 
         {error && (
-          <p role="alert" className="text-sm text-red-700">
+          <p role="alert" className="mt-6 text-[1rem] italic text-red-800">
             {error}
           </p>
         )}
@@ -135,11 +141,12 @@ export default function CartPage() {
         <button
           type="submit"
           disabled={pending}
-          className="w-full bg-ink px-6 py-4 text-sm uppercase tracking-widest text-paper transition hover:bg-ink/85 disabled:bg-ink/30"
+          className="label mt-10 w-full bg-ink py-4 text-paper transition hover:bg-ink/85 disabled:bg-line disabled:text-muted"
         >
           {pending ? 'Procesando…' : `Pagar ${formatPrice(total + shipping)}`}
         </button>
-        <p className="text-xs text-ink/50">
+
+        <p className="mt-4 text-[0.95rem] italic text-muted">
           Demo sin pasarela de pago: el pedido se registra pero no se cobra nada.
         </p>
       </form>
@@ -149,8 +156,8 @@ export default function CartPage() {
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className={`flex justify-between ${strong ? 'border-t border-ink/10 pt-2 font-medium' : ''}`}>
-      <dt className="text-ink/60">{label}</dt>
+    <div className={`flex justify-between ${strong ? 'border-t border-line pt-3' : ''}`}>
+      <dt className={strong ? '' : 'text-muted'}>{label}</dt>
       <dd className="tabular-nums">{value}</dd>
     </div>
   )
@@ -169,13 +176,13 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs uppercase tracking-widest text-ink/50">{label}</span>
+      <span className="label mb-2 block text-muted">{label}</span>
       <input
         name={name}
         type={type}
         required
         autoComplete={autoComplete}
-        className="w-full border border-ink/20 bg-paper px-3 py-2 text-sm outline-none focus:border-ink"
+        className="w-full border-b border-line bg-transparent pb-2 text-[1.05rem] outline-none focus:border-ink"
       />
     </label>
   )

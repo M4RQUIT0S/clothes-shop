@@ -1,15 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Instrument_Serif, Inter } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Cormorant_Garamond, Inter } from 'next/font/google'
 import { CartProvider } from '@/components/cart'
-import { CartLink } from '@/components/cart-link'
-import { CATEGORIES } from '@/lib/shop'
+import { BottomBar } from '@/components/bottom-bar'
 import './globals.css'
 
-const display = Instrument_Serif({
-  weight: '400',
+const display = Cormorant_Garamond({
+  weight: ['300', '400', '500'],
+  style: ['normal', 'italic'],
   subsets: ['latin'],
   variable: '--font-display',
 })
@@ -19,46 +17,41 @@ const body = Inter({ subsets: ['latin'], variable: '--font-body' })
 export const metadata: Metadata = {
   title: 'Hilo — ropa de todos los días',
   description:
-    'Tienda de ropa con prendas de tejidos honestos: camisetas, sudaderas, pantalones, chaquetas y vestidos.',
+    'Tejidos honestos y cortes que no caducan. Camisetas, sudaderas, pantalones, chaquetas y vestidos, en un catálogo corto a propósito.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${display.variable} ${body.variable}`}>
-      <body className="flex min-h-screen flex-col antialiased">
+      <body className="antialiased">
         <CartProvider>
-          <header className="sticky top-0 z-10 border-b border-ink/10 bg-paper/85 backdrop-blur">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-              <Link href="/" className="font-display text-2xl leading-none">
-                Hilo
-              </Link>
-              <nav className="hidden gap-6 text-sm md:flex">
-                {CATEGORIES.map((c) => (
-                  <Link
-                    key={c.slug}
-                    href={`/?categoria=${c.slug}`}
-                    className="text-ink/70 transition hover:text-ink"
-                  >
-                    {c.label}
-                  </Link>
-                ))}
-              </nav>
-              <CartLink />
-            </div>
+          <p className="bg-ink px-6 py-2.5 text-center text-[0.9rem] italic text-paper">
+            Envío gratuito en la península a partir de 60 €
+          </p>
+
+          <header className="border-b border-line py-7 text-center">
+            <Link href="/" className="inline-block">
+              <span className="block text-[1.6rem] font-light leading-none tracking-[0.42em] [text-indent:0.42em]">
+                HILO
+              </span>
+              <span className="label mt-2 block text-muted [text-indent:0.2em] tracking-[0.2em]">
+                ropa de diario
+              </span>
+            </Link>
           </header>
 
-          <main className="flex-1">{children}</main>
+          <main>{children}</main>
 
-          <footer className="border-t border-ink/10 px-6 py-10 text-sm text-ink/50">
-            <div className="mx-auto flex max-w-6xl flex-wrap gap-x-8 gap-y-2">
-              <span>© {new Date().getFullYear()} Hilo</span>
-              <span>Envío gratuito a partir de 60 €</span>
-              <span>Devoluciones en 30 días</span>
+          <footer className="border-t border-line px-6 py-14">
+            <div className="mx-auto flex max-w-5xl flex-wrap justify-center gap-x-10 gap-y-3 text-center">
+              <span className="label text-muted">Devoluciones en 30 días</span>
+              <span className="label text-muted">Tejidos con trazabilidad</span>
+              <span className="label text-muted">© {new Date().getFullYear()} Hilo</span>
             </div>
           </footer>
+
+          <BottomBar />
         </CartProvider>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   )

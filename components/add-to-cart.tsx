@@ -25,21 +25,21 @@ export function AddToCart({ product }: { product: Product }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div>
       {product.sizes.length > 0 && (
         <fieldset>
-          <legend className="mb-2 text-xs uppercase tracking-widest text-ink/50">Talla</legend>
-          <div className="flex flex-wrap gap-2">
+          <legend className="mb-4 text-[1.05rem]">Elige tu talla</legend>
+          <div className="flex flex-wrap gap-6">
             {product.sizes.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setSize(s)}
                 aria-pressed={s === size}
-                className={`min-w-12 border px-3 py-2 text-sm transition ${
+                className={`label pb-1 transition ${
                   s === size
-                    ? 'border-ink bg-ink text-paper'
-                    : 'border-ink/20 hover:border-ink/60'
+                    ? 'border-b border-ink text-ink'
+                    : 'border-b border-transparent text-muted hover:text-ink'
                 }`}
               >
                 {s}
@@ -49,18 +49,18 @@ export function AddToCart({ product }: { product: Product }) {
         </fieldset>
       )}
 
+      <p className="label mt-6 text-muted">
+        {soldOut ? 'Sin stock ahora mismo' : `${product.stock} unidades disponibles`}
+      </p>
+
       <button
         type="button"
         onClick={onAdd}
         disabled={soldOut}
-        className="w-full bg-ink px-6 py-4 text-sm uppercase tracking-widest text-paper transition hover:bg-ink/85 disabled:cursor-not-allowed disabled:bg-ink/30"
+        className="label mt-6 w-full bg-ink py-4 text-paper transition hover:bg-ink/85 disabled:cursor-not-allowed disabled:bg-line disabled:text-muted"
       >
-        {soldOut ? 'Agotado' : added ? 'Añadido ✓' : 'Añadir al carrito'}
+        {soldOut ? 'Agotado' : added ? 'Añadido a la cesta ✓' : 'Añadir a la cesta'}
       </button>
-
-      <p className="text-xs text-ink/50">
-        {soldOut ? 'Sin stock ahora mismo.' : `${product.stock} unidades disponibles`}
-      </p>
     </div>
   )
 }
