@@ -16,7 +16,7 @@ export function AddToCart({ product }: { product: Product }) {
       name: product.name,
       size,
       price_cents: product.price_cents,
-      category: product.category,
+      image_url: product.image_url,
       color: product.color,
       qty: 1,
     })

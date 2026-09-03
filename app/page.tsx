@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ProductArt } from '@/components/product-art'
+import { ProductImage } from '@/components/product-image'
 import { CATEGORIES, formatPrice, supabase, type Product } from '@/lib/shop'
 
 export const revalidate = 60
@@ -61,9 +61,11 @@ export default async function Home({
             {products.map((p) => (
               <li key={p.id}>
                 <Link href={`/producto/${p.slug}`} className="group block">
-                  <ProductArt
-                    category={p.category}
+                  <ProductImage
+                    src={p.image_url}
+                    alt={p.name}
                     color={p.color}
+                    sizes="(min-width: 1024px) 33vw, 50vw"
                     className="aspect-[4/5] w-full transition group-hover:opacity-85"
                   />
                   <h2 className="mt-4 text-sm leading-snug">{p.name}</h2>

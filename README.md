@@ -38,6 +38,15 @@ npm test
 Comprueba contra el proyecto real que el catálogo es legible, que los pedidos **no** lo son
 y que un pedido se puede crear sin devolver la fila.
 
+## Fotos de producto
+
+Las imágenes actuales son **fotos de stock de Unsplash a modo de marcador**, servidas
+desde `images.unsplash.com` (licencia Unsplash: uso comercial gratuito, sin atribución
+obligatoria). Cada producto guarda su URL en `products.image_url`.
+
+Para poner las fotos definitivas basta con cambiar esa columna. Si las subes a Supabase
+Storage, añade su hostname a `images.remotePatterns` en `next.config.ts`.
+
 ## Lo que no incluye
 
 Pasarela de pago, cuentas de usuario, panel de administración y descuento de stock.

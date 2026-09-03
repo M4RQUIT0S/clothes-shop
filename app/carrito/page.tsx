@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useCart } from '@/components/cart'
-import { ProductArt } from '@/components/product-art'
+import { ProductImage } from '@/components/product-image'
 import { formatPrice } from '@/lib/shop'
 import { checkout } from './actions'
 
@@ -73,7 +73,13 @@ export default function CartPage() {
         <ul className="mt-8 divide-y divide-ink/10 border-y border-ink/10">
           {items.map((item) => (
             <li key={`${item.slug}-${item.size}`} className="flex gap-4 py-5">
-              <ProductArt category={item.category} color={item.color} className="w-20 shrink-0" />
+              <ProductImage
+                src={item.image_url}
+                alt={item.name}
+                color={item.color}
+                sizes="80px"
+                className="aspect-[4/5] w-20 shrink-0"
+              />
               <div className="flex-1">
                 <Link href={`/producto/${item.slug}`} className="text-sm hover:underline">
                   {item.name}

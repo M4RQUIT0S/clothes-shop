@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AddToCart } from '@/components/add-to-cart'
-import { ProductArt } from '@/components/product-art'
+import { ProductImage } from '@/components/product-image'
 import { formatPrice, supabase, type Product } from '@/lib/shop'
 
 export const revalidate = 60
@@ -25,7 +25,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   return (
     <article className="mx-auto grid max-w-6xl gap-12 px-6 py-12 md:grid-cols-2 md:py-20">
-      <ProductArt category={product.category} color={product.color} className="aspect-[4/5] w-full" />
+      <ProductImage
+        src={product.image_url}
+        alt={product.name}
+        color={product.color}
+        sizes="(min-width: 768px) 50vw, 100vw"
+        priority
+        className="aspect-[4/5] w-full"
+      />
 
       <div className="md:max-w-sm">
         <Link
