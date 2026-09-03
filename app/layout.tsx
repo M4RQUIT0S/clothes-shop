@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Instrument_Serif, Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { CartProvider } from '@/components/cart'
 import { CartLink } from '@/components/cart-link'
 import { CATEGORIES } from '@/lib/shop'
@@ -55,6 +57,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </footer>
         </CartProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
