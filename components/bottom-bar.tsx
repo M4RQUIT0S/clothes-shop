@@ -19,7 +19,7 @@ export function BottomBar() {
   return (
     <>
       {menuOpen && (
-        <nav className="fixed inset-0 z-20 flex flex-col items-center justify-center gap-6 bg-paper">
+        <nav className="fixed inset-0 z-20 flex flex-col items-center justify-center gap-6 bg-paper md:hidden">
           {CATEGORIES.map((c) => (
             <Link
               key={c.slug}
@@ -40,7 +40,7 @@ export function BottomBar() {
         </nav>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 items-center border-t border-line bg-paper px-6 py-4">
+      <div className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 items-center border-t border-line bg-paper px-6 py-4 md:hidden">
         <Link href="/" className="label justify-self-start hover:text-muted">
           Catálogo
         </Link>

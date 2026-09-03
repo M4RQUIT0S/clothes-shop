@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Cormorant_Garamond, Inter } from 'next/font/google'
 import { CartProvider } from '@/components/cart'
+import { CartCount } from '@/components/cart-count'
 import { BottomBar } from '@/components/bottom-bar'
+import { CATEGORIES } from '@/lib/shop'
 import './globals.css'
 
 const display = Cormorant_Garamond({
@@ -23,21 +25,38 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${display.variable} ${body.variable}`}>
-      <body className="antialiased">
+      {/* la barra inferior sólo existe en móvil, así que sólo ahí reservamos hueco */}
+      <body className="pb-14 antialiased md:pb-0">
         <CartProvider>
-          <p className="bg-ink px-6 py-2.5 text-center text-[0.9rem] italic text-paper">
-            Envío gratuito en la península a partir de 60 €
-          </p>
+          <div className="flex items-center justify-between border-b border-line px-4 py-2 md:px-6">
+            <p className="text-[0.9rem] italic">Envío gratuito en la península a partir de 60 €</p>
+            <p className="label hidden text-muted md:block">Devoluciones en 30 días</p>
+          </div>
 
-          <header className="border-b border-line py-7 text-center">
-            <Link href="/" className="inline-block">
-              <span className="block text-[1.6rem] font-light leading-none tracking-[0.42em] [text-indent:0.42em]">
+          <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-line px-4 py-4 md:px-6">
+            <nav className="hidden gap-6 md:flex">
+              {CATEGORIES.map((c) => (
+                <Link key={c.slug} href={`/?categoria=${c.slug}`} className="label text-muted hover:text-ink">
+                  {c.label}
+                </Link>
+              ))}
+            </nav>
+
+            <Link href="/" className="col-start-2 text-center">
+              <span className="block text-[1.5rem] font-light leading-none tracking-[0.42em] [text-indent:0.42em]">
                 HILO
               </span>
-              <span className="label mt-2 block text-muted [text-indent:0.2em] tracking-[0.2em]">
+              <span className="label mt-1.5 block tracking-[0.2em] text-muted [text-indent:0.2em]">
                 ropa de diario
               </span>
             </Link>
+
+            <div className="col-start-3 hidden justify-end gap-6 md:flex">
+              <Link href="/" className="label text-muted hover:text-ink">
+                Todo
+              </Link>
+              <CartCount className="label hover:text-muted" />
+            </div>
           </header>
 
           <main>{children}</main>

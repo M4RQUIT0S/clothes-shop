@@ -43,9 +43,25 @@ export default async function Home({
           priority
           className="h-[68vh] w-full object-cover md:h-[82vh]"
         />
-        <h1 className="absolute bottom-16 left-6 max-w-[9ch] text-[clamp(2.5rem,8.5vw,6.5rem)] font-light leading-[0.88] text-paper md:bottom-24 md:left-10">
-          Fondo de armario
-        </h1>
+        {/* el titular va en claro: este velo lo mantiene legible sea cual sea la foto */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent" />
+
+        <div className="absolute inset-y-0 left-6 flex max-w-sm flex-col justify-center md:left-14 md:max-w-md">
+          <h1 className="text-[clamp(2.25rem,5.6vw,4.75rem)] font-light leading-[1.02] text-paper">
+            Fondo de <em>armario</em>
+          </h1>
+          <p className="mt-4 text-[1.05rem] italic text-paper/85">
+            Tejidos honestos para las prendas que te pones cada semana.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3">
+            <Link href="#catalogo" className="label border-b border-paper/60 pb-1 text-paper">
+              Ver el catálogo
+            </Link>
+            <Link href="/?categoria=chaquetas" className="label border-b border-paper/60 pb-1 text-paper">
+              Chaquetas
+            </Link>
+          </div>
+        </div>
       </section>
 
       <section className="mx-auto max-w-4xl px-6 py-24 md:py-32">
@@ -58,7 +74,7 @@ export default async function Home({
         </p>
       </section>
 
-      <nav className="flex flex-wrap items-baseline gap-x-8 gap-y-3 border-y border-line px-6 py-5">
+      <nav id="catalogo" className="flex flex-wrap items-baseline gap-x-8 gap-y-3 border-y border-line px-6 py-5 scroll-mt-4">
         <CategoryLink href="/" label="Todo" count={all.length} active={!active} />
         {CATEGORIES.map((c) => (
           <CategoryLink

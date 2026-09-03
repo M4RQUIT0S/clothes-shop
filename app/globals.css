@@ -13,8 +13,6 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-display);
-  /* la barra fija inferior no debe tapar el final de la página */
-  padding-bottom: 3.25rem;
 }
 
 ::selection {
