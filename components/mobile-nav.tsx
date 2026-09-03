@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { useCart } from './cart'
 import { CATEGORIES } from '@/lib/shop'
 
-export function BottomBar() {
+export function MobileNav() {
   const { count } = useCart()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -40,7 +40,7 @@ export function BottomBar() {
         </nav>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 items-center border-t border-line bg-paper px-6 py-4 md:hidden">
+      <div className="sticky top-0 z-30 grid grid-cols-3 items-center border-b border-line bg-paper px-6 py-4 md:hidden">
         <Link href="/" className="label justify-self-start hover:text-muted">
           Catálogo
         </Link>

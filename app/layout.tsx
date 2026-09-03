@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Cormorant_Garamond, Inter } from 'next/font/google'
 import { CartProvider } from '@/components/cart'
 import { CartCount } from '@/components/cart-count'
-import { BottomBar } from '@/components/bottom-bar'
+import { MobileNav } from '@/components/mobile-nav'
 import { CATEGORIES } from '@/lib/shop'
 import './globals.css'
 
@@ -25,13 +25,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${display.variable} ${body.variable}`}>
-      {/* la barra inferior sólo existe en móvil, así que sólo ahí reservamos hueco */}
-      <body className="pb-14 antialiased md:pb-0">
+      <body className="antialiased">
         <CartProvider>
           <div className="flex items-center justify-between border-b border-line px-4 py-2 md:px-6">
             <p className="text-[0.9rem] italic">Envío gratuito en la península a partir de 60 €</p>
             <p className="label hidden text-muted md:block">Devoluciones en 30 días</p>
           </div>
+
+          <MobileNav />
 
           <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-line px-4 py-4 md:px-6">
             <nav className="hidden gap-6 md:flex">
@@ -68,8 +69,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <span className="label text-muted">© {new Date().getFullYear()} Hilo</span>
             </div>
           </footer>
-
-          <BottomBar />
         </CartProvider>
       </body>
     </html>
