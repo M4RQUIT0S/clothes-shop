@@ -2,7 +2,16 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ProductCard } from '@/components/product-card'
 import { Reveal } from '@/components/reveal'
-import { CATEGORIES, supabase, type Product } from '@/lib/shop'
+import {
+  CATEGORIES,
+  discountPct,
+  formatPrice,
+  isOnSale,
+  supabase,
+  unitPrice,
+  type News,
+  type Product,
+} from '@/lib/shop'
 
 export const revalidate = 60
 
@@ -19,10 +28,13 @@ export default async function Home({
   const { categoria } = await searchParams
   const active = CATEGORIES.find((c) => c.slug === categoria)?.slug
 
-  const { data, error } = await supabase.from('products').select('*').order('created_at')
+  const [catalog, news] = await Promise.all([
+    supabase.from('products').select('*').order('created_at'),
+    supabase.from('news').select('*').order('published_at', { ascending: false }).limit(1),
+  ])
 
-  if (error) {
-    console.error('Error cargando el catálogo:', error)
+  if (catalog.error) {
+    console.error('Error cargando el catálogo:', catalog.error)
     return (
       <p className="px-6 py-32 text-center text-muted">
         No hemos podido cargar el catálogo. Vuelve a intentarlo en un momento.
@@ -30,13 +42,26 @@ export default async function Home({
     )
   }
 
-  const all = (data ?? []) as Product[]
+  // Las novedades son un adorno de portada: si la tabla falla (o todavía no está
+  // migrada) la tienda sigue funcionando y ese bloque simplemente no sale.
+  if (news.error) console.error('Error cargando las novedades:', news.error)
+  const latestNews = news.data?.[0] as News | undefined
+
+  const all = (catalog.data ?? []) as Product[]
   const products = active ? all.filter((p) => p.category === active) : all
   const firstOf = (slug: string) => all.find((p) => p.category === slug)
+
+  // el catálogo llega de más antiguo a más nuevo: el último es el recién ingresado
+  const newest = all[all.length - 1]
+  const promo = all.reduce<Product | undefined>(
+    (best, p) => (isOnSale(p) && (!best || discountPct(p) > discountPct(best)) ? p : best),
+    undefined
+  )
 
   return (
     <>
       <Hero />
+      <Highlights newest={newest} promo={promo} news={latestNews} />
       <Manifesto />
 
       <CategoryBar active={active} />
@@ -57,7 +82,6 @@ export default async function Home({
       )}
 
       <Workshop lead={firstOf('chaquetas')} inset={firstOf('pantalones')} />
-      <Signatures firstOf={firstOf} />
     </>
   )
 }
@@ -87,11 +111,11 @@ function Hero() {
           Tejidos honestos para las prendas que te pones cada semana.
         </p>
         <div className="mt-8 flex flex-wrap gap-x-9 gap-y-3">
-          <HeroLink href="#catalogo" delay={400}>
-            Ver el catálogo
+          <HeroLink href="#destacados" delay={400}>
+            Lo último
           </HeroLink>
-          <HeroLink href="#taller" delay={480}>
-            El taller
+          <HeroLink href="#catalogo" delay={480}>
+            Ver el catálogo
           </HeroLink>
         </div>
       </div>
@@ -112,10 +136,93 @@ function HeroLink({
     <Link
       href={href}
       style={{ animationDelay: `${delay}ms` }}
-      className="rise label border-b border-paper/60 pb-1.5 text-paper transition-colors duration-300 ease-in hover:border-paper hover:text-paper"
+      className="rise label border-b border-paper/60 pb-1.5 text-paper transition-colors duration-300 ease-out hover:border-paper hover:text-paper"
     >
       {children}
     </Link>
+  )
+}
+
+type Tile = {
+  key: string
+  kicker: string
+  title: string
+  meta: React.ReactNode
+  image: string
+  href: string
+}
+
+/**
+ * Lo primero que se ve bajo la portada: lo recién ingresado, lo rebajado y la última
+ * novedad de la casa. Cada pieza sale de su propio dato, así que si no hay promoción
+ * o no hay novedad publicada, la franja se queda con las que sí tienen algo que contar.
+ */
+function Highlights({ newest, promo, news }: { newest?: Product; promo?: Product; news?: News }) {
+  const tiles: Tile[] = [
+    newest && {
+      key: 'nuevo',
+      kicker: 'Recién ingresado',
+      title: newest.name,
+      meta: formatPrice(unitPrice(newest)),
+      image: newest.image_url,
+      href: `/producto/${newest.slug}`,
+    },
+    promo && {
+      key: 'promo',
+      kicker: `Promoción · −${discountPct(promo)}%`,
+      title: promo.name,
+      meta: (
+        <>
+          <span className="line-through opacity-70">{formatPrice(promo.price_cents)}</span>{' '}
+          {formatPrice(unitPrice(promo))}
+        </>
+      ),
+      image: promo.image_url,
+      href: `/producto/${promo.slug}`,
+    },
+    news && {
+      key: 'novedad',
+      kicker: 'Novedades',
+      title: news.title,
+      meta: news.excerpt,
+      image: news.image_url,
+      href: news.href,
+    },
+  ].flatMap((t) => (t ? [t] : []))
+
+  if (tiles.length === 0) return null
+
+  return (
+    <section id="destacados" className="scroll-mt-24 px-1 pt-6">
+      <ul className="grid gap-1 md:grid-cols-3">
+        {tiles.map((tile, i) => (
+          <li key={tile.key}>
+            <Reveal delay={i * 110}>
+              <Link href={tile.href} className="group relative block">
+                <div className="relative aspect-[4/5] w-full overflow-hidden">
+                  <Image
+                    src={tile.image}
+                    alt={tile.title}
+                    fill
+                    sizes="(min-width: 768px) 33vw, 100vw"
+                    className="object-cover transition-transform duration-[1400ms] ease-[var(--ease-soft)] group-hover:scale-[1.05]"
+                  />
+                  {/* el texto va en claro sobre la foto: el velo asegura el contraste
+                      y se cierra un poco más en hover, que es toda la respuesta que pide */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10 opacity-90 transition-opacity duration-500 ease-out group-hover:opacity-100" />
+
+                  <div className="absolute inset-x-6 bottom-6 text-paper">
+                    <p className="label text-paper/75">{tile.kicker}</p>
+                    <p className="mt-2 text-[1.3rem] font-light leading-snug">{tile.title}</p>
+                    <p className="meta mt-1.5 text-paper/80">{tile.meta}</p>
+                  </div>
+                </div>
+              </Link>
+            </Reveal>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -148,7 +255,7 @@ function CategoryBar({ active }: { active?: string }) {
           <Link
             key={c.slug}
             href={`/?categoria=${c.slug}`}
-            className={`label transition-colors duration-300 ease-in ${
+            className={`label transition-colors duration-300 ease-out ${
               active === c.slug ? 'text-ink' : 'text-muted hover:text-ink'
             }`}
           >
@@ -159,7 +266,7 @@ function CategoryBar({ active }: { active?: string }) {
 
       <Link
         href="/#catalogo"
-        className={`label border-b pb-1 transition-colors duration-300 ease-in ${
+        className={`label border-b pb-1 transition-colors duration-300 ease-out ${
           active ? 'border-line text-muted hover:text-ink' : 'border-ink text-ink'
         }`}
       >
@@ -207,58 +314,13 @@ function Workshop({ lead, inset }: { lead?: Product; inset?: Product }) {
             </p>
             <Link
               href="/?categoria=chaquetas"
-              className="label mt-9 border-b border-ink pb-1.5 transition-colors duration-300 ease-in hover:text-muted"
+              className="label mt-9 border-b border-ink pb-1.5 transition-colors duration-300 ease-out hover:text-muted"
             >
               Ver las chaquetas
             </Link>
           </div>
         </Reveal>
       </div>
-    </section>
-  )
-}
-
-const SIGNATURE_SLUGS: string[] = ['sudaderas', 'pantalones', 'vestidos']
-
-function Signatures({ firstOf }: { firstOf: (slug: string) => Product | undefined }) {
-  const picks = CATEGORIES.filter((c) => SIGNATURE_SLUGS.includes(c.slug))
-
-  return (
-    <section className="px-1 pb-6">
-      <Reveal>
-        <h2 className="px-5 pb-8 text-[clamp(1.5rem,2.4vw,2rem)] font-light md:px-9">
-          Firmas de la casa
-        </h2>
-      </Reveal>
-
-      <ul className="grid gap-1 md:grid-cols-3">
-        {picks.map((c, i) => {
-          const product = firstOf(c.slug)
-          if (!product) return null
-
-          return (
-            <li key={c.slug}>
-              <Reveal delay={i * 110}>
-                <Link href={`/?categoria=${c.slug}`} className="group relative block">
-                  <div className="relative aspect-[4/5] w-full overflow-hidden">
-                    <Image
-                      src={product.image_url}
-                      alt={c.label}
-                      fill
-                      sizes="(min-width: 768px) 33vw, 100vw"
-                      className="object-cover transition-transform duration-[1200ms] ease-[var(--ease-out)] group-hover:scale-[1.04]"
-                    />
-                    <div className="absolute inset-0 bg-black/15 transition-colors duration-500 group-hover:bg-black/25" />
-                  </div>
-                  <span className="label absolute bottom-6 left-6 border-b border-paper/60 pb-1.5 text-paper">
-                    {c.label}
-                  </span>
-                </Link>
-              </Reveal>
-            </li>
-          )
-        })}
-      </ul>
     </section>
   )
 }

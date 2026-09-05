@@ -6,9 +6,8 @@ create table products (
   price_cents int not null check (price_cents >= 0),
   image_url text not null default '',
   category text not null default 'general',
-  sizes text[] not null default '{}',
+  sizes text[] not null default ARRAY[]::text[],
   stock int not null default 0 check (stock >= 0),
-  color text not null default '#9ca3af',
   created_at timestamptz not null default now()
 );
 

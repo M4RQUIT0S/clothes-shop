@@ -22,7 +22,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${display.variable} ${body.variable}`}>
+    // data-scroll-behavior: sin él, el «scroll-behavior: smooth» que usamos para los
+    // anclajes hace que Next 16 anime también el salto al cambiar de ruta (docs de
+    // la v16, «Scroll Behavior Override»). Con él, los anclajes siguen suaves y la
+    // navegación vuelve a ser instantánea.
+    <html
+      lang="es"
+      data-scroll-behavior="smooth"
+      className={`${display.variable} ${body.variable}`}
+    >
       <body className="antialiased">
         <CartProvider>
           <SiteHeader />

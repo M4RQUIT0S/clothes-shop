@@ -12,7 +12,13 @@
 :root {
   /* bloque fijo superior: franja (2rem) + navegación (3.5rem) */
   --top-h: 5.5rem;
+
+  /* Dos curvas y no más, para que todo el sitio frene igual:
+     --ease-out para lo que responde al ratón (arranca ya, frena al final),
+     --ease-soft (expo) para las entradas largas: casi todo el recorrido ocurre
+     al principio y el último tramo se posa, que es lo que se lee como fluido. */
   --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html {
@@ -49,7 +55,7 @@ body {
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(1rem);
+    transform: translate3d(0, 1.15rem, 0);
   }
   to {
     opacity: 1;
@@ -58,7 +64,7 @@ body {
 }
 
 .rise {
-  animation: rise 0.9s var(--ease-out) both;
+  animation: rise 1s var(--ease-soft) both;
 }
 
 /* Fundido para contenido que se reemplaza en sitio (el aviso rotatorio).
@@ -74,19 +80,39 @@ body {
   animation: fade-swap 0.5s var(--ease-out);
 }
 
+/* menú que aparece anclado a su botón (tallas del añadido rápido) */
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -0.35rem, 0) scale(0.97);
+  }
+}
+
+.pop {
+  animation: pop 0.26s var(--ease-out) both;
+  transform-origin: top right;
+}
+
 /* revelado al entrar en el viewport (ver components/reveal.tsx) */
 .reveal {
   transition:
-    opacity 0.8s var(--ease-out),
-    transform 0.8s var(--ease-out);
+    opacity 0.95s var(--ease-soft),
+    transform 0.95s var(--ease-soft);
 }
 
 /* sin JS la regla no llega a aplicarse y el contenido se ve tal cual */
 @media (scripting: enabled) {
   .reveal {
     opacity: 0;
-    transform: translateY(1rem);
+    transform: translate3d(0, 1.15rem, 0);
   }
+}
+
+/* Sólo mientras está pendiente: avisar al compositor de lo que va a cambiar evita
+   el tirón del primer fotograma. Al terminar sobra, y dejarlo puesto retiene
+   una capa por cada bloque de la página. */
+.reveal:not(.is-in) {
+  will-change: opacity, transform;
 }
 
 .reveal.is-in {
