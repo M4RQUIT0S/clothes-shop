@@ -15,7 +15,7 @@ function Item({ href, children }: { href: string; children: React.ReactNode }) {
     <li>
       <Link
         href={href}
-        className="meta text-muted transition-colors duration-300 ease-in hover:text-ink"
+        className="meta text-muted transition-colors duration-300 ease-out hover:text-ink"
       >
         {children}
       </Link>
@@ -62,7 +62,7 @@ export function SiteFooter() {
         <span className="meta text-muted">Tejidos con trazabilidad</span>
         <Link
           href="/#catalogo"
-          className="meta text-muted transition-colors duration-300 ease-in hover:text-ink"
+          className="meta text-muted transition-colors duration-300 ease-out hover:text-ink"
         >
           Volver al catálogo
         </Link>

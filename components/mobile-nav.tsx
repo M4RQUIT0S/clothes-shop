@@ -52,7 +52,7 @@ export function MobileNav() {
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           aria-expanded={menuOpen}
-          className="label flex items-center pr-4 transition-opacity duration-300 ease-in hover:opacity-60"
+          className="label flex items-center pr-4 transition-opacity duration-300 ease-out hover:opacity-60"
         >
           {menuOpen ? 'Cerrar' : 'Menú'}
         </button>
@@ -66,7 +66,7 @@ export function MobileNav() {
         <Link
           href="/carrito"
           onClick={close}
-          className="label flex items-center justify-end pl-4 transition-opacity duration-300 ease-in hover:opacity-60"
+          className="label flex items-center justify-end pl-4 transition-opacity duration-300 ease-out hover:opacity-60"
         >
           Cesta ({count})
         </Link>

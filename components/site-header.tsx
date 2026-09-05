@@ -38,7 +38,7 @@ export function SiteHeader() {
   return (
     <>
       <div
-        className={`fixed inset-x-0 top-0 z-40 transition-colors duration-500 ${
+        className={`fixed inset-x-0 top-0 z-40 transition-colors duration-500 ease-out ${
           overHero ? 'text-paper' : 'text-ink'
         }`}
       >
@@ -53,7 +53,7 @@ export function SiteHeader() {
 
         {/* la franja se pliega en cuanto se baja, como en el sitio de referencia */}
         <div
-          className={`overflow-hidden bg-ink/90 transition-[height] duration-500 ${
+          className={`overflow-hidden bg-ink/90 transition-[height] duration-500 ease-[var(--ease-soft)] ${
             scrolled ? 'h-0' : 'h-8'
           }`}
         >
@@ -67,7 +67,7 @@ export function SiteHeader() {
         </div>
 
         <div
-          className={`transition-colors duration-500 ${
+          className={`transition-colors duration-500 ease-out ${
             overHero ? 'border-b border-transparent' : 'border-b border-line bg-paper/95 backdrop-blur'
           }`}
         >
@@ -77,7 +77,7 @@ export function SiteHeader() {
                 <Link
                   key={c.slug}
                   href={`/?categoria=${c.slug}`}
-                  className="label transition-colors duration-300 ease-in hover:opacity-60"
+                  className="label transition-colors duration-300 ease-out hover:opacity-60"
                 >
                   {c.label}
                 </Link>
@@ -94,12 +94,12 @@ export function SiteHeader() {
             </Link>
 
             <div className="col-start-3 flex justify-end gap-7">
-              <Link href="/" className="label transition-colors duration-300 ease-in hover:opacity-60">
+              <Link href="/" className="label transition-colors duration-300 ease-out hover:opacity-60">
                 Todo
               </Link>
               <Link
                 href="/carrito"
-                className="label transition-colors duration-300 ease-in hover:opacity-60"
+                className="label transition-colors duration-300 ease-out hover:opacity-60"
               >
                 Cesta ({count})
               </Link>
