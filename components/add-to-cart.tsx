@@ -28,7 +28,7 @@ export function AddToCart({ product }: { product: Product }) {
     <div>
       {product.sizes.length > 0 && (
         <fieldset>
-          <legend className="mb-4 text-[1.05rem]">Elige tu talla</legend>
+          <legend className="mb-4 text-[1.05rem]">Elegí tu talle</legend>
           <div className="flex flex-wrap gap-6">
             {product.sizes.map((s) => (
               <button
@@ -59,7 +59,7 @@ export function AddToCart({ product }: { product: Product }) {
         disabled={soldOut}
         className="label mt-6 w-full bg-ink py-4 text-paper transition-colors duration-300 ease-out hover:bg-ink/85 disabled:cursor-not-allowed disabled:bg-line disabled:text-muted"
       >
-        {soldOut ? 'Agotado' : added ? 'Añadido a la cesta ✓' : 'Añadir a la cesta'}
+        {soldOut ? 'Agotado' : added ? 'Agregado al carrito ✓' : 'Agregar al carrito'}
       </button>
     </div>
   )

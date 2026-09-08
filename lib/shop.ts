@@ -38,8 +38,24 @@ if (!url || !key) {
 
 export const supabase = createClient(url, key)
 
-const eur = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' })
-export const formatPrice = (cents: number) => eur.format(cents / 100)
+// Sin decimales: en pesos los centavos no se usan y "$ 24.900,00" solo añade ruido.
+// La columna sigue siendo price_cents (centavos de peso), así que el redondeo es de
+// presentación: las sumas del carrito y del checkout se hacen siempre en centavos.
+const ars = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: 'ARS',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+})
+export const formatPrice = (cents: number) => ars.format(cents / 100)
+
+/**
+ * PENDIENTE: los dos importes siguen siendo los de la etapa en euros (4,95 € y 60 €).
+ * En pesos no significan nada. Todo el copy de envíos sale de aquí —cinta superior,
+ * pie y carrito—, así que cambiando estas dos constantes se actualiza la tienda entera.
+ */
+export const SHIPPING_CENTS = 495
+export const SHIPPING_FREE_FROM = 6000
 
 type Priced = Pick<Product, 'price_cents' | 'sale_price_cents'>
 
@@ -56,10 +72,13 @@ export const unitPrice = (p: Priced) => (isOnSale(p) ? p.sale_price_cents! : p.p
 export const discountPct = (p: Priced) =>
   isOnSale(p) ? Math.round((1 - p.sale_price_cents! / p.price_cents) * 100) : 0
 
+// Las etiquetas van en rioplatense pero los slugs se quedan como están: son la URL
+// pública y la columna `category` de la base. Cambiarlos sería una migración de datos
+// y rompería los enlaces que ya circulan.
 export const CATEGORIES = [
-  { slug: 'camisetas', label: 'Camisetas' },
-  { slug: 'sudaderas', label: 'Sudaderas' },
+  { slug: 'camisetas', label: 'Remeras' },
+  { slug: 'sudaderas', label: 'Buzos' },
   { slug: 'pantalones', label: 'Pantalones' },
-  { slug: 'chaquetas', label: 'Chaquetas' },
+  { slug: 'chaquetas', label: 'Camperas' },
   { slug: 'vestidos', label: 'Vestidos' },
 ] as const

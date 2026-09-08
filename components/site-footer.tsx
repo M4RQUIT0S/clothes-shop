@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { CATEGORIES } from '@/lib/shop'
+import { CATEGORIES, SHIPPING_FREE_FROM, formatPrice } from '@/lib/shop'
 
 function Column({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -42,8 +42,8 @@ export function SiteFooter() {
         </Column>
 
         <Column title="Tienda">
-          <Item href="/carrito">Cesta</Item>
-          <li className="meta text-muted">Envío gratuito desde 60 €</li>
+          <Item href="/carrito">Carrito</Item>
+          <li className="meta text-muted">Envío gratis desde {formatPrice(SHIPPING_FREE_FROM)}</li>
           <li className="meta text-muted">Devoluciones en 30 días</li>
         </Column>
 

@@ -17,7 +17,7 @@ const body = Inter({ subsets: ['latin'], variable: '--font-body' })
 export const metadata: Metadata = {
   title: 'Hilo — ropa de todos los días',
   description:
-    'Tejidos honestos y cortes que no caducan. Camisetas, sudaderas, pantalones, chaquetas y vestidos, en un catálogo corto a propósito.',
+    'Tejidos honestos y cortes que no pasan de moda. Remeras, buzos, pantalones, camperas y vestidos, en un catálogo corto a propósito.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // la v16, «Scroll Behavior Override»). Con él, los anclajes siguen suaves y la
     // navegación vuelve a ser instantánea.
     <html
-      lang="es"
+      lang="es-AR"
       data-scroll-behavior="smooth"
       className={`${display.variable} ${body.variable}`}
     >
