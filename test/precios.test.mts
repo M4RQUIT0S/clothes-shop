@@ -17,12 +17,15 @@ test('una rebaja sólo cuenta si de verdad baja el precio', () => {
   assert.equal(isOnSale({ price_cents: 1000, sale_price_cents: 1000 }), false)
   assert.equal(isOnSale({ price_cents: 1000, sale_price_cents: 1200 }), false)
   assert.equal(isOnSale({ price_cents: 1000, sale_price_cents: null }), false)
+  // un cero es un error de carga, no una promoción: cobrarlo sería regalar la prenda
+  assert.equal(isOnSale({ price_cents: 1000, sale_price_cents: 0 }), false)
 })
 
 test('unitPrice nunca regala nada por una fila mal cargada', () => {
   assert.equal(unitPrice({ price_cents: 1000, sale_price_cents: 800 }), 800)
   assert.equal(unitPrice({ price_cents: 1000, sale_price_cents: null }), 1000)
   assert.equal(unitPrice({ price_cents: 1000, sale_price_cents: 1200 }), 1000)
+  assert.equal(unitPrice({ price_cents: 1000, sale_price_cents: 0 }), 1000)
 })
 
 test('discountPct redondea al entero y calla si no hay rebaja', () => {

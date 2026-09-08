@@ -70,9 +70,15 @@ export const shippingFor = (totalCents: number) =>
 
 type Priced = Pick<Product, 'price_cents' | 'sale_price_cents'>
 
-/** La rebaja sólo cuenta si de verdad baja el precio: así una fila mal cargada no regala nada. */
+/**
+ * La rebaja sólo cuenta si de verdad baja el precio y no es cero: así una fila mal
+ * cargada no regala nada. El cero lo veta también la base, pero esto es lo que evita
+ * cobrar 0 si alguna fila se coló antes de que existiera ese check.
+ */
 export const isOnSale = (p: Priced) =>
-  typeof p.sale_price_cents === 'number' && p.sale_price_cents < p.price_cents
+  typeof p.sale_price_cents === 'number' &&
+  p.sale_price_cents > 0 &&
+  p.sale_price_cents < p.price_cents
 
 /**
  * Lo que se cobra por una unidad. Única fuente de verdad: la usan la ficha, la

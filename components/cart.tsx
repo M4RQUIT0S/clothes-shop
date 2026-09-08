@@ -47,18 +47,29 @@ let cache: { raw: string | null; items: CartItem[] } = { raw: null, items: VACIO
 
 const listeners = new Set<() => void>()
 
-function leerCrudo() {
+/**
+ * Hay que distinguir «no hay nada guardado» (null) de «no hay almacenamiento»
+ * (bloqueado, modo privado, cuota). Si los mezclamos, un navegador sin storage
+ * parecería tener siempre el carrito vacío y no se podría ni comprar en memoria.
+ */
+const SIN_ALMACENAMIENTO = Symbol('sin almacenamiento')
+
+function leerCrudo(): string | null | typeof SIN_ALMACENAMIENTO {
   try {
     return localStorage.getItem(KEY)
   } catch (error) {
-    // Modo privado o almacenamiento bloqueado: la tienda sigue, sin persistencia.
     console.error('No se pudo leer el carrito guardado:', error)
-    return null
+    return SIN_ALMACENAMIENTO
   }
 }
 
 function getSnapshot(): CartItem[] {
   const raw = leerCrudo()
+
+  // Sin almacenamiento, la caché en memoria ES el carrito: se pierde al recargar,
+  // pero durante la sesión se puede añadir, cambiar cantidades y pagar.
+  if (raw === SIN_ALMACENAMIENTO) return cache.items
+
   if (raw !== cache.raw) {
     let items = VACIO
     try {
@@ -84,11 +95,19 @@ function subscribe(listener: () => void) {
 }
 
 function guardar(items: CartItem[]) {
+  const raw = JSON.stringify(items)
+
+  // La caché se actualiza SIEMPRE y antes de intentar persistir. Si se dejara para
+  // después del setItem, un almacenamiento bloqueado dejaría el store sin cambiar y
+  // la interfaz no reaccionaría a añadir, quitar ni cambiar cantidades.
+  cache = { raw, items }
+
   try {
-    localStorage.setItem(KEY, JSON.stringify(items))
+    localStorage.setItem(KEY, raw)
   } catch (error) {
-    console.error('No se pudo guardar el carrito:', error)
+    console.error('No se pudo guardar el carrito; sigue sólo en memoria:', error)
   }
+
   listeners.forEach((avisar) => avisar())
 }
 
