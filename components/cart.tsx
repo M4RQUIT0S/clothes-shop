@@ -54,11 +54,19 @@ const listeners = new Set<() => void>()
  */
 const SIN_ALMACENAMIENTO = Symbol('sin almacenamiento')
 
+// React llama a getSnapshot en cada render y comprobación: sin este cerrojo, un
+// navegador sin almacenamiento escupe el mismo error cientos de veces por sesión y
+// entierra en la consola cualquier otra cosa que hubiera que ver.
+let yaAvisado = false
+
 function leerCrudo(): string | null | typeof SIN_ALMACENAMIENTO {
   try {
     return localStorage.getItem(KEY)
   } catch (error) {
-    console.error('No se pudo leer el carrito guardado:', error)
+    if (!yaAvisado) {
+      yaAvisado = true
+      console.error('Sin acceso al almacenamiento; el carrito vivirá sólo en memoria:', error)
+    }
     return SIN_ALMACENAMIENTO
   }
 }
