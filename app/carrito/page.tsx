@@ -141,7 +141,7 @@ export default function CartPage() {
         <button
           type="submit"
           disabled={pending}
-          className="label mt-10 w-full bg-ink py-4 text-paper transition hover:bg-ink/85 disabled:bg-line disabled:text-muted"
+          className="label mt-10 w-full bg-ink py-4 text-paper transition-colors duration-300 ease-out hover:bg-ink/85 disabled:bg-line disabled:text-muted"
         >
           {pending ? 'Procesando…' : `Pagar ${formatPrice(total + shipping)}`}
         </button>

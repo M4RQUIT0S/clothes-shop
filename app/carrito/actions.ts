@@ -1,7 +1,7 @@
 'use server'
 
 import { z } from 'zod'
-import { supabase, type Product } from '@/lib/shop'
+import { supabase, unitPrice, type Product } from '@/lib/shop'
 
 const CheckoutSchema = z.object({
   full_name: z.string().trim().min(2, 'Escribe tu nombre completo.').max(120),
@@ -52,7 +52,7 @@ export async function checkout(input: CheckoutInput): Promise<CheckoutResult> {
       name: product.name,
       size: item.size,
       qty: item.qty,
-      unit_price_cents: product.price_cents,
+      unit_price_cents: unitPrice(product),
     })
   }
 

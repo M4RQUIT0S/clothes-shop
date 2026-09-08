@@ -6,6 +6,7 @@ export function ProductImage({
   color,
   sizes,
   className = '',
+  imgClassName = '',
   priority = false,
 }: {
   src: string
@@ -13,6 +14,7 @@ export function ProductImage({
   color: string
   sizes: string
   className?: string
+  imgClassName?: string
   priority?: boolean
 }) {
   return (
@@ -21,7 +23,14 @@ export function ProductImage({
       style={{ backgroundColor: `${color}1f` }}
     >
       {src && (
-        <Image src={src} alt={alt} fill sizes={sizes} priority={priority} className="object-cover" />
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes={sizes}
+          priority={priority}
+          className={`object-cover ${imgClassName}`}
+        />
       )}
     </div>
   )

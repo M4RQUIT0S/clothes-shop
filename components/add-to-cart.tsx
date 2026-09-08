@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useCart } from './cart'
-import type { Product } from '@/lib/shop'
+import { unitPrice, type Product } from '@/lib/shop'
 
 export function AddToCart({ product }: { product: Product }) {
   const { add } = useCart()
@@ -15,7 +15,7 @@ export function AddToCart({ product }: { product: Product }) {
       slug: product.slug,
       name: product.name,
       size,
-      price_cents: product.price_cents,
+      price_cents: unitPrice(product),
       image_url: product.image_url,
       color: product.color,
       qty: 1,
@@ -36,7 +36,7 @@ export function AddToCart({ product }: { product: Product }) {
                 type="button"
                 onClick={() => setSize(s)}
                 aria-pressed={s === size}
-                className={`label pb-1 transition ${
+                className={`label pb-1 transition-colors duration-300 ease-out ${
                   s === size
                     ? 'border-b border-ink text-ink'
                     : 'border-b border-transparent text-muted hover:text-ink'
@@ -57,7 +57,7 @@ export function AddToCart({ product }: { product: Product }) {
         type="button"
         onClick={onAdd}
         disabled={soldOut}
-        className="label mt-6 w-full bg-ink py-4 text-paper transition hover:bg-ink/85 disabled:cursor-not-allowed disabled:bg-line disabled:text-muted"
+        className="label mt-6 w-full bg-ink py-4 text-paper transition-colors duration-300 ease-out hover:bg-ink/85 disabled:cursor-not-allowed disabled:bg-line disabled:text-muted"
       >
         {soldOut ? 'Agotado' : added ? 'Añadido a la cesta ✓' : 'Añadir a la cesta'}
       </button>
