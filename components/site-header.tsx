@@ -3,13 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { CATEGORIES } from '@/lib/shop'
+import { CATEGORIES, SHIPPING_FREE_FROM, formatPrice } from '@/lib/shop'
 import { useCart } from './cart'
 import { MobileNav } from './mobile-nav'
 
 const NOTES = [
-  'Envío gratuito en la península a partir de 60 €',
-  'Cosido en talleres de Alicante y del norte de Portugal',
+  `Envío gratis a todo el país desde ${formatPrice(SHIPPING_FREE_FROM)}`,
+  'Cortado y cosido en talleres argentinos',
   'Devoluciones en 30 días',
 ]
 
@@ -62,7 +62,7 @@ export function SiteHeader() {
             <p key={note} className="fade-swap text-[0.8rem] italic">
               {NOTES[note]}
             </p>
-            <p className="label hidden text-paper/60 md:block">Envíos a toda Europa</p>
+            <p className="label hidden text-paper/60 md:block">Envíos a todo el país</p>
           </div>
         </div>
 
@@ -101,7 +101,7 @@ export function SiteHeader() {
                 href="/carrito"
                 className="label transition-colors duration-300 ease-out hover:opacity-60"
               >
-                Cesta ({count})
+                Carrito ({count})
               </Link>
             </div>
           </nav>

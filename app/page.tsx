@@ -29,15 +29,22 @@ export default async function Home({
   const active = CATEGORIES.find((c) => c.slug === categoria)?.slug
 
   const [catalog, news] = await Promise.all([
-    supabase.from('products').select('*').order('created_at'),
-    supabase.from('news').select('*').order('published_at', { ascending: false }).limit(1),
+    // el desempate por slug no es cosmético: sin él, dos altas con la misma fecha
+    // salen en el orden físico de las filas y cualquier UPDATE reordena la portada
+    supabase.from('products').select('*').order('created_at').order('slug'),
+    supabase
+      .from('news')
+      .select('*')
+      .lte('published_at', new Date().toISOString())
+      .order('published_at', { ascending: false })
+      .limit(1),
   ])
 
   if (catalog.error) {
     console.error('Error cargando el catálogo:', catalog.error)
     return (
       <p className="px-6 py-32 text-center text-muted">
-        No hemos podido cargar el catálogo. Vuelve a intentarlo en un momento.
+        No hemos podido cargar el catálogo. Volvé a intentarlo en un momento.
       </p>
     )
   }
@@ -53,8 +60,10 @@ export default async function Home({
 
   // el catálogo llega de más antiguo a más nuevo: el último es el recién ingresado
   const newest = all[all.length - 1]
+  // el recién ingresado queda fuera: si además es el más rebajado, saldría dos veces
   const promo = all.reduce<Product | undefined>(
-    (best, p) => (isOnSale(p) && (!best || discountPct(p) > discountPct(best)) ? p : best),
+    (best, p) =>
+      p !== newest && isOnSale(p) && (!best || discountPct(p) > discountPct(best)) ? p : best,
     undefined
   )
 
@@ -108,7 +117,7 @@ function Hero() {
           Fondo de <em>armario</em>
         </h1>
         <p className="rise mt-4 text-[1rem] text-paper/85" style={{ animationDelay: '260ms' }}>
-          Tejidos honestos para las prendas que te pones cada semana.
+          Tejidos honestos para las prendas que te ponés cada semana.
         </p>
         <div className="mt-8 flex flex-wrap gap-x-9 gap-y-3">
           <HeroLink href="#destacados" delay={400}>
@@ -152,6 +161,17 @@ type Tile = {
   href: string
 }
 
+/** Mismo precio que enseña la tarjeta del catálogo, para que no se contradigan. */
+const priceLabel = (p: Product) =>
+  isOnSale(p) ? (
+    <>
+      <span className="line-through opacity-70">{formatPrice(p.price_cents)}</span>{' '}
+      {formatPrice(unitPrice(p))}
+    </>
+  ) : (
+    formatPrice(p.price_cents)
+  )
+
 /**
  * Lo primero que se ve bajo la portada: lo recién ingresado, lo rebajado y la última
  * novedad de la casa. Cada pieza sale de su propio dato, así que si no hay promoción
@@ -163,7 +183,7 @@ function Highlights({ newest, promo, news }: { newest?: Product; promo?: Product
       key: 'nuevo',
       kicker: 'Recién ingresado',
       title: newest.name,
-      meta: formatPrice(unitPrice(newest)),
+      meta: priceLabel(newest),
       image: newest.image_url,
       href: `/producto/${newest.slug}`,
     },
@@ -171,12 +191,7 @@ function Highlights({ newest, promo, news }: { newest?: Product; promo?: Product
       key: 'promo',
       kicker: `Promoción · −${discountPct(promo)}%`,
       title: promo.name,
-      meta: (
-        <>
-          <span className="line-through opacity-70">{formatPrice(promo.price_cents)}</span>{' '}
-          {formatPrice(unitPrice(promo))}
-        </>
-      ),
+      meta: priceLabel(promo),
       image: promo.image_url,
       href: `/producto/${promo.slug}`,
     },
@@ -192,14 +207,20 @@ function Highlights({ newest, promo, news }: { newest?: Product; promo?: Product
 
   if (tiles.length === 0) return null
 
+  // Faltar una pieza es un estado normal (sin promoción activa, sin novedad publicada):
+  // la franja se reparte entre las que hay en vez de dejar huecos, y en solitario
+  // se tumba a formato apaisado para no comerse la pantalla entera.
+  const cols = tiles.length === 3 ? 'md:grid-cols-3' : tiles.length === 2 ? 'md:grid-cols-2' : ''
+  const ratio = tiles.length === 1 ? 'aspect-[16/9]' : 'aspect-[4/5]'
+
   return (
     <section id="destacados" className="scroll-mt-24 px-1 pt-6">
-      <ul className="grid gap-1 md:grid-cols-3">
+      <ul className={`grid gap-1 ${cols}`}>
         {tiles.map((tile, i) => (
           <li key={tile.key}>
             <Reveal delay={i * 110}>
               <Link href={tile.href} className="group relative block">
-                <div className="relative aspect-[4/5] w-full overflow-hidden">
+                <div className={`relative ${ratio} w-full overflow-hidden`}>
                   <Image
                     src={tile.image}
                     alt={tile.title}
@@ -308,15 +329,18 @@ function Workshop({ lead, inset }: { lead?: Product; inset?: Product }) {
               </div>
             )}
             <p className="text-[1.15rem] font-light leading-[1.5]">
-              Cortamos en Alicante y cosemos en el norte de Portugal, en dos talleres que
-              visitamos cada temporada. <em>Series cortas</em>, tejidos con nombre y{' '}
+              {/* PENDIENTE: los dos talleres van sin ciudad porque todavía no sé cuáles son.
+                  En cuanto me los digas, aquí van los nombres: es el detalle que sostiene
+                  la afirmación de trazabilidad del manifiesto. */}
+              Cortamos y cosemos en dos talleres argentinos que visitamos cada
+              temporada. <em>Series cortas</em>, tejidos con nombre y{' '}
               <em>patrones que se corrigen</em> hasta que caen bien.
             </p>
             <Link
               href="/?categoria=chaquetas"
               className="label mt-9 border-b border-ink pb-1.5 transition-colors duration-300 ease-out hover:text-muted"
             >
-              Ver las chaquetas
+              Ver las camperas
             </Link>
           </div>
         </Reveal>

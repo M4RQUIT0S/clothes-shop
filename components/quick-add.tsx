@@ -34,7 +34,7 @@ export function QuickAdd({ product }: { product: Product }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-label={`Añadir ${product.name} a la cesta`}
+        aria-label={`Agregar ${product.name} al carrito`}
         className="px-1 text-lg leading-none text-muted transition-colors duration-300 ease-out hover:text-ink"
       >
         {added ? '✓' : open ? '×' : '+'}

@@ -19,7 +19,7 @@ test('los pedidos no se pueden leer desde el cliente', async () => {
   assert.deepEqual(await res.json(), [], 'RLS deja escapar pedidos ajenos')
 })
 
-test('se puede crear un pedido pero no leerlo de vuelta', async () => {
+test('los pedidos no se pueden crear desde el cliente', async () => {
   const res = await fetch(`${url}/rest/v1/orders`, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
@@ -31,6 +31,32 @@ test('se puede crear un pedido pero no leerlo de vuelta', async () => {
       total_cents: 2990,
     }),
   })
-  assert.equal(res.status, 201)
-  assert.equal(await res.text(), '', 'el insert no debería devolver la fila')
+  assert.ok(res.status >= 400, 'RLS permite fabricar pedidos desde el cliente')
+})
+
+test('las novedades son legibles con la clave pública', async () => {
+  const res = await fetch(`${url}/rest/v1/news?select=slug,title,image_url&limit=5`, { headers })
+  assert.equal(res.status, 200, 'falta aplicar la migración de novedades')
+  const rows = await res.json()
+  assert.ok(rows.length > 0, 'no hay novedades sembradas')
+  assert.ok(rows.every((r) => r.title.length > 0))
+})
+
+test('las novedades no se pueden publicar desde el cliente', async () => {
+  const res = await fetch(`${url}/rest/v1/news`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slug: `intruso-${Date.now()}`, title: 'No debería entrar' }),
+  })
+  assert.ok(res.status >= 400, 'RLS deja publicar novedades a cualquiera')
+})
+
+test('una rebaja nunca supera el precio de tarifa', async () => {
+  const res = await fetch(
+    `${url}/rest/v1/products?select=slug,price_cents,sale_price_cents&sale_price_cents=not.is.null`,
+    { headers }
+  )
+  assert.equal(res.status, 200, 'falta aplicar la migración de promociones')
+  const rows = await res.json()
+  assert.ok(rows.every((r) => r.sale_price_cents > 0 && r.sale_price_cents < r.price_cents))
 })

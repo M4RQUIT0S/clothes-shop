@@ -68,7 +68,7 @@ export function MobileNav() {
           onClick={close}
           className="label flex items-center justify-end pl-4 transition-opacity duration-300 ease-out hover:opacity-60"
         >
-          Cesta ({count})
+          Carrito ({count})
         </Link>
       </div>
     </>
