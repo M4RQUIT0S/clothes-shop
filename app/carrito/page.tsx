@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react'
 import { useCart } from '@/components/cart'
 import { ProductImage } from '@/components/product-image'
 import { PROVINCES } from '@/lib/argentina'
-import { SHIPPING_CENTS, SHIPPING_FREE_FROM, formatPrice } from '@/lib/shop'
+import { formatPrice, shippingFor } from '@/lib/shop'
 import { checkout } from './actions'
 
 /** Los dos formatos válidos de CP; el servidor vuelve a comprobarlo en isPostalCode(). */
@@ -17,7 +17,7 @@ export default function CartPage() {
   const [orderId, setOrderId] = useState('')
   const [pending, startTransition] = useTransition()
 
-  const shipping = total === 0 || total >= SHIPPING_FREE_FROM ? 0 : SHIPPING_CENTS
+  const shipping = shippingFor(total)
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()

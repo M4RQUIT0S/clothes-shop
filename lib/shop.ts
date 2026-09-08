@@ -50,12 +50,23 @@ const ars = new Intl.NumberFormat('es-AR', {
 export const formatPrice = (cents: number) => ars.format(cents / 100)
 
 /**
- * PENDIENTE: los dos importes siguen siendo los de la etapa en euros (4,95 € y 60 €).
- * En pesos no significan nada. Todo el copy de envíos sale de aquí —cinta superior,
- * pie y carrito—, así que cambiando estas dos constantes se actualiza la tienda entera.
+ * Centavos de peso. Todo el copy de envíos sale de aquí —cinta superior, pie y
+ * carrito—, así que cambiando estas dos constantes se actualiza la tienda entera.
+ *
+ * El coste sale de convertir los 4,95 € originales a 1 EUR = 1.756,53 ARS (oficial,
+ * 8/9/2026). El umbral de envío gratis se redondea a 100.000 en vez de a los 105.392
+ * que daría la conversión: es un número que el comprador tiene que poder retener.
  */
-export const SHIPPING_CENTS = 495
-export const SHIPPING_FREE_FROM = 6000
+export const SHIPPING_CENTS = 890_000
+export const SHIPPING_FREE_FROM = 10_000_000
+
+/**
+ * Envío para un subtotal. El carrito vacío no paga envío (si no, la cesta sin nada
+ * mostraría un total de sólo portes), y el umbral es inclusivo: justo en la cifra
+ * anunciada ya es gratis, que es lo que el comprador entiende al leer «desde».
+ */
+export const shippingFor = (totalCents: number) =>
+  totalCents === 0 || totalCents >= SHIPPING_FREE_FROM ? 0 : SHIPPING_CENTS
 
 type Priced = Pick<Product, 'price_cents' | 'sale_price_cents'>
 
