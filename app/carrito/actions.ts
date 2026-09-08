@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
-import { supabase, unitPrice, type Product } from '@/lib/shop'
+import { shippingFor, supabase, unitPrice, type Product } from '@/lib/shop'
 import { PROVINCES, isPostalCode, normalizePostalCode } from '@/lib/argentina'
 
 const CheckoutSchema = z.object({
@@ -78,7 +78,13 @@ export async function checkout(input: CheckoutInput): Promise<CheckoutResult> {
     })
   }
 
-  const total_cents = lines.reduce((sum, l) => sum + l.qty * l.unit_price_cents, 0)
+  const subtotal_cents = lines.reduce((sum, l) => sum + l.qty * l.unit_price_cents, 0)
+
+  // El envío se recalcula aquí con la misma regla que pinta el carrito. El cliente no
+  // decide cuánto paga de portes, igual que no decide los precios; y sin esto el total
+  // registrado no era el que el comprador vio en el botón de pagar.
+  const shipping_cents = shippingFor(subtotal_cents)
+  const total_cents = subtotal_cents + shipping_cents
 
   // getOrderWriter() lanza si la configuración del servidor está incompleta. Sin este
   // catch la excepción sale del server action, revienta el startTransition del cliente
@@ -97,7 +103,17 @@ export async function checkout(input: CheckoutInput): Promise<CheckoutResult> {
   const orderId = crypto.randomUUID()
   const { error: insertError } = await orders
     .from('orders')
-    .insert({ id: orderId, full_name, email, address, province, postal_code, items: lines, total_cents })
+    .insert({
+      id: orderId,
+      full_name,
+      email,
+      address,
+      province,
+      postal_code,
+      items: lines,
+      shipping_cents,
+      total_cents,
+    })
 
   if (insertError) {
     console.error('Error creando el pedido:', insertError)
