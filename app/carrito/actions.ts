@@ -1,36 +1,10 @@
 'use server'
 
-import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
 import { shippingFor, supabase, unitPrice, type Product } from '@/lib/shop'
-import { PROVINCES, isPostalCode, normalizePostalCode } from '@/lib/argentina'
+import { CheckoutSchema, type CheckoutInput } from '@/lib/checkout-schema'
 
-const CheckoutSchema = z.object({
-  full_name: z.string().trim().min(2, 'Escribí tu nombre completo.').max(120),
-  email: z.email('El email no es válido.').max(200),
-  address: z.string().trim().min(10, 'La dirección parece incompleta.').max(400),
-  // La lista vive en lib/argentina.ts y la comparte el desplegable del formulario:
-  // una sola fuente evita ofrecer opciones que el servidor luego rechaza.
-  province: z
-    .string()
-    .refine((v) => (PROVINCES as readonly string[]).includes(v), 'Elegí una provincia de la lista.'),
-  postal_code: z
-    .string()
-    .transform(normalizePostalCode)
-    .refine(isPostalCode, 'El código postal no es válido: C1425DKE o 1425.'),
-  items: z
-    .array(
-      z.object({
-        slug: z.string().min(1).max(120),
-        size: z.string().max(20),
-        qty: z.number().int().min(1).max(20),
-      })
-    )
-    .min(1, 'El carrito está vacío.')
-    .max(50),
-})
-
-export type CheckoutInput = z.infer<typeof CheckoutSchema>
+export type { CheckoutInput } from '@/lib/checkout-schema'
 export type CheckoutResult = { ok: true; orderId: string } | { ok: false; error: string }
 
 function getOrderWriter() {

@@ -1,0 +1,12 @@
+# Archivos locales y copias de trabajo ajenos al despliegue.
+.claude/
+.agents/
+.git/
+.next/
+node_modules/
+*.tsbuildinfo
+.env*
+docs/
+tasks/
+coverage/
+supabase/.temp/

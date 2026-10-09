@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AddToCart } from '@/components/add-to-cart'
 import { ProductImage } from '@/components/product-image'
-import { discountPct, formatPrice, isOnSale, supabase, unitPrice, type Product } from '@/lib/shop'
+import { CATEGORIES, discountPct, formatPrice, isOnSale, supabase, unitPrice, type Product } from '@/lib/shop'
 
 export const revalidate = 60
 
@@ -24,18 +24,18 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = data as Product
 
   return (
-    <article>
+    <article className="mx-auto max-w-7xl md:grid md:grid-cols-2 md:items-start md:gap-10">
       <ProductImage
         src={product.image_url}
         alt={product.name}
         color={product.color}
-        sizes="100vw"
+        sizes="(min-width: 1280px) 620px, (min-width: 768px) 50vw, 100vw"
         priority
-        className="h-[72vh] w-full md:h-[86vh]"
+        className="h-[48svh] w-full md:sticky md:top-24 md:h-[70vh]"
         imgClassName="transition-transform duration-[1200ms] ease-[var(--ease-out)] hover:scale-[1.02]"
       />
 
-      <div className="mx-auto max-w-xl px-6 py-14">
+      <div className="w-full px-6 py-8 md:py-12">
         <h1 className="text-[2rem] font-light leading-tight">{product.name}</h1>
         <p className="meta mt-2 text-muted">
           {isOnSale(product) ? (
@@ -60,8 +60,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <p className="text-[1.1rem] leading-relaxed">{product.description}</p>
           <p className="mt-5 text-[1.1rem] leading-relaxed text-muted">
             Categoría:{' '}
-            <Link href={`/?categoria=${product.category}`} className="italic text-ink underline underline-offset-4 transition-colors duration-300 ease-out hover:text-muted">
-              {product.category}
+            <Link href={`/?categoria=${product.category}#catalogo`} className="inline-flex min-h-11 items-center italic text-ink underline underline-offset-4 transition-colors duration-300 ease-out hover:text-muted">
+              {CATEGORIES.find((category) => category.slug === product.category)?.label ?? product.category}
             </Link>
           </p>
         </div>

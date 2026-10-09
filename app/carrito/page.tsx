@@ -4,15 +4,14 @@ import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useCart } from '@/components/cart'
 import { ProductImage } from '@/components/product-image'
-import { PROVINCES } from '@/lib/argentina'
+import { POSTAL_CODE_PATTERN, PROVINCES } from '@/lib/argentina'
+import { MAX_ITEM_QUANTITY } from '@/lib/cart'
+import { ADDRESS_MAX_LENGTH, EMAIL_MAX_LENGTH, NAME_MAX_LENGTH, POSTAL_CODE_MAX_LENGTH } from '@/lib/checkout-fields'
 import { formatPrice, shippingFor } from '@/lib/shop'
 import { checkout } from './actions'
 
-/** Los dos formatos válidos de CP; el servidor vuelve a comprobarlo en isPostalCode(). */
-const CP_PATTERN = '[A-Za-z][0-9]{4}[A-Za-z]{3}|[0-9]{4}'
-
 export default function CartPage() {
-  const { items, setQty, remove, clear, total } = useCart()
+  const { items, setQty, remove, clear, total, warning } = useCart()
   const [error, setError] = useState('')
   const [orderId, setOrderId] = useState('')
   const [pending, startTransition] = useTransition()
@@ -62,6 +61,7 @@ export default function CartPage() {
     return (
       <section className="mx-auto max-w-lg px-6 py-32 text-center">
         <h1 className="text-[2.4rem] font-light">Tu carrito está vacío</h1>
+        {warning && <p role="status" className="mt-4 text-muted">{warning}</p>}
         <p className="mt-4 text-muted">Trece prendas esperando. Empezá por donde quieras.</p>
         <Link href="/" className="label mt-10 inline-block border-b border-ink pb-1">
           Ver el catálogo
@@ -71,48 +71,53 @@ export default function CartPage() {
   }
 
   return (
-    <section className="mx-auto grid max-w-6xl gap-20 px-6 py-16 md:grid-cols-[1.15fr_1fr]">
-      <div>
+    <section className="mx-auto grid max-w-6xl gap-12 px-6 py-16 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-20">
+      <div className="min-w-0">
         <h1 className="text-[2.4rem] font-light">Carrito</h1>
+        {warning && <p role="status" className="mt-4 text-muted">{warning}</p>}
 
         <ul className="mt-10 divide-y divide-line border-y border-line">
           {items.map((item) => (
-            <li key={`${item.slug}-${item.size}`} className="flex gap-5 py-6">
+            <li key={`${item.slug}-${item.size}`} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-x-4 gap-y-3 py-6 sm:grid-cols-[5.5rem_minmax(0,1fr)]">
               <ProductImage
                 src={item.image_url}
                 alt={item.name}
                 color={item.color}
-                sizes="88px"
-                className="aspect-[3/4] w-22 shrink-0"
+                sizes="(min-width: 640px) 88px, 64px"
+                className="row-span-2 aspect-[3/4] w-16 sm:w-22"
               />
-              <div className="flex-1">
-                <Link href={`/producto/${item.slug}`} className="text-[1.05rem] hover:italic">
+              <div className="min-w-0">
+                <Link href={`/producto/${item.slug}`} className="inline-flex min-h-11 items-center text-[1.05rem] hover:italic">
                   {item.name}
                 </Link>
                 <p className="label mt-1 text-muted">Talle {item.size}</p>
-                <div className="mt-4 flex items-center gap-4">
+                <div className="mt-4 flex flex-wrap items-center gap-3">
                   <label className="sr-only" htmlFor={`qty-${item.slug}-${item.size}`}>
-                    Cantidad de {item.name}
+                    Cantidad de {item.name}{item.size ? `, talle ${item.size}` : ''}
                   </label>
-                  <input
+                  <select
                     id={`qty-${item.slug}-${item.size}`}
-                    type="number"
-                    min={1}
-                    max={20}
                     value={item.qty}
+                    disabled={pending}
                     onChange={(e) => setQty(item.slug, item.size, Number(e.target.value))}
-                    className="w-14 border-b border-line bg-transparent pb-1 text-center text-[1rem] outline-none focus:border-ink"
-                  />
+                    className="min-h-11 min-w-16 border border-line bg-paper px-2 text-[1rem] disabled:opacity-60"
+                  >
+                    {Array.from({ length: MAX_ITEM_QUANTITY }, (_, i) => i + 1).map((qty) => (
+                      <option key={qty} value={qty}>{qty}</option>
+                    ))}
+                  </select>
                   <button
                     type="button"
+                    disabled={pending}
+                    aria-label={`Quitar ${item.name}${item.size ? `, talle ${item.size}` : ''}`}
                     onClick={() => remove(item.slug, item.size)}
-                    className="label text-muted underline underline-offset-4 hover:text-ink"
+                    className="label min-h-11 px-2 text-muted underline underline-offset-4 hover:text-ink disabled:opacity-60"
                   >
                     Quitar
                   </button>
                 </div>
               </div>
-              <p className="text-[1.05rem] tabular-nums">
+              <p className="col-start-2 text-[1.05rem] tabular-nums">
                 {formatPrice(item.qty * item.price_cents)}
               </p>
             </li>
@@ -126,13 +131,13 @@ export default function CartPage() {
         </dl>
       </div>
 
-      <form onSubmit={onSubmit} className="self-start">
+      <form onSubmit={onSubmit} aria-busy={pending} className="min-w-0 self-start">
         <h2 className="text-[1.6rem] font-light">Datos de envío</h2>
 
         <div className="mt-8 space-y-7">
-          <Field label="Nombre completo" name="full_name" autoComplete="name" />
-          <Field label="Email" name="email" type="email" autoComplete="email" />
-          <Field label="Calle y número" name="address" autoComplete="street-address" />
+          <Field label="Nombre completo" name="full_name" autoComplete="name" minLength={2} maxLength={NAME_MAX_LENGTH} />
+          <Field label="Email" name="email" type="email" autoComplete="email" maxLength={EMAIL_MAX_LENGTH} />
+          <Field label="Calle y número" name="address" autoComplete="street-address" maxLength={ADDRESS_MAX_LENGTH} />
 
           <label className="block">
             <span className="label mb-2 block text-muted">Provincia</span>
@@ -141,7 +146,7 @@ export default function CartPage() {
               required
               defaultValue=""
               autoComplete="address-level1"
-              className="w-full border-b border-line bg-transparent pb-2 text-[1.05rem] outline-none focus:border-ink"
+              className="min-h-11 w-full border-b border-line bg-transparent pb-2 text-[1.05rem] focus:border-ink"
             >
               <option value="" disabled>
                 Elegí tu provincia
@@ -158,7 +163,8 @@ export default function CartPage() {
             label="Código postal"
             name="postal_code"
             autoComplete="postal-code"
-            pattern={CP_PATTERN}
+            pattern={POSTAL_CODE_PATTERN}
+            maxLength={POSTAL_CODE_MAX_LENGTH}
             hint="CPA (C1425DKE) o los cuatro dígitos de siempre (1425)"
           />
         </div>
@@ -201,6 +207,8 @@ function Field({
   autoComplete,
   pattern,
   hint,
+  minLength,
+  maxLength,
 }: {
   label: string
   name: string
@@ -208,6 +216,8 @@ function Field({
   autoComplete?: string
   pattern?: string
   hint?: string
+  minLength?: number
+  maxLength?: number
 }) {
   return (
     <label className="block">
@@ -218,11 +228,13 @@ function Field({
         required
         autoComplete={autoComplete}
         pattern={pattern}
+        minLength={minLength}
+        maxLength={maxLength}
         // sin title, el globo de validación del navegador dice «coincide con el
         // formato solicitado» y no cuenta cuál es. Con él, repite la pista.
         title={hint}
         aria-describedby={hint ? `${name}-hint` : undefined}
-        className="w-full border-b border-line bg-transparent pb-2 text-[1.05rem] outline-none focus:border-ink"
+        className="min-h-11 w-full border-b border-line bg-transparent pb-2 text-[1.05rem] focus:border-ink"
       />
       {hint && (
         <span id={`${name}-hint`} className="meta mt-2 block text-muted">
