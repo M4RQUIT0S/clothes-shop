@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { useCart } from './cart'
+import { SizeGuide } from './size-guide'
 import { unitPrice, type Product } from '@/lib/shop'
+import { sizeGuideFor } from '@/lib/size-guide'
 
 export function AddToCart({ product }: { product: Product }) {
   const { add } = useCart()
@@ -10,6 +12,7 @@ export function AddToCart({ product }: { product: Product }) {
   const [message, setMessage] = useState('')
   const soldOut = product.stock < 1
   const needsSize = product.sizes.length > 0 && !size
+  const guide = sizeGuideFor(product)
 
   const onAdd = () => {
     if (soldOut || needsSize) return
@@ -49,6 +52,7 @@ export function AddToCart({ product }: { product: Product }) {
           </div>
         </fieldset>
       )}
+      {guide && <SizeGuide guide={guide} selected={size} />}
 
       <p className="label mt-6 text-muted">
         {soldOut ? 'Sin stock ahora mismo' : `${product.stock} unidades disponibles`}
