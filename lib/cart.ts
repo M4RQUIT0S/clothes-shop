@@ -65,3 +65,21 @@ export function addCartItem(items: CartItem[], item: CartItem): { items: CartIte
       : [...items, item],
   }
 }
+
+export type OrderedLine = Pick<CartItem, 'slug' | 'size' | 'qty'>
+
+/**
+ * Cierra un pedido sobre el carrito actual, que pudo cambiar en otra pestaña mientras
+ * se confirmaba. Sólo se quitan las líneas que siguen exactamente como se pidieron;
+ * las que cambiaron de cantidad se conservan y se devuelven en `changed` para avisar.
+ * Restar a ciegas dejaría cantidades que nadie eligió.
+ */
+export function removeOrderedLines(items: CartItem[], ordered: OrderedLine[]): { items: CartItem[]; changed: CartItem[] } {
+  const isOrderedAsIs = (item: CartItem) =>
+    ordered.some((line) => sameLine(item, line.slug, line.size) && item.qty === line.qty)
+  const wasOrdered = (item: CartItem) => ordered.some((line) => sameLine(item, line.slug, line.size))
+  return {
+    items: items.filter((item) => !isOrderedAsIs(item)),
+    changed: items.filter((item) => wasOrdered(item) && !isOrderedAsIs(item)),
+  }
+}

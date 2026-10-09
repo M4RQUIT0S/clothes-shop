@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { addCartItem, readSavedCart, setCartQuantity, type CartItem } from '../lib/cart.ts'
+import { addCartItem, readSavedCart, removeOrderedLines, setCartQuantity, type CartItem } from '../lib/cart.ts'
 
 const shirt: CartItem = {
   slug: 'remera-lino', name: 'Remera de lino', size: 'M', qty: 1,
@@ -70,4 +70,23 @@ test('no recupera cantidades excesivas, duplicados ni precios inválidos', () =>
   assert.deepEqual(result.items, [shirt])
   assert.ok(result.warning)
   assert.deepEqual(readSavedCart(JSON.stringify([{ ...shirt, qty: 21 }])).items, [])
+})
+
+test('al cerrar un pedido se quitan sólo las líneas que siguen tal cual se pidieron', () => {
+  const pants = { ...shirt, slug: 'pantalon', name: 'Pantalón', size: '42' }
+  const added = { ...shirt, slug: 'buzo', name: 'Buzo', size: 'L' }
+  const current = [{ ...shirt, qty: 2 }, pants, added]
+  const ordered = [
+    { slug: shirt.slug, size: shirt.size, qty: 1 },
+    { slug: pants.slug, size: pants.size, qty: 1 },
+  ]
+  const result = removeOrderedLines(current, ordered)
+  // La remera pasó de 1 a 2 en otra pestaña: no se toca. El buzo no se pidió.
+  assert.deepEqual(result.items, [{ ...shirt, qty: 2 }, added])
+  assert.deepEqual(result.changed, [{ ...shirt, qty: 2 }])
+})
+
+test('si una línea pedida ya no está en el carrito, no pasa nada', () => {
+  const result = removeOrderedLines([], [{ slug: shirt.slug, size: shirt.size, qty: 1 }])
+  assert.deepEqual(result, { items: [], changed: [] })
 })
