@@ -2,6 +2,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ProductCard } from '@/components/product-card'
 import { Reveal } from '@/components/reveal'
+import { CatalogError } from '@/components/catalog-error'
+import { NavigationLabel } from '@/components/navigation-label'
 import {
   CATEGORIES,
   discountPct,
@@ -42,11 +44,7 @@ export default async function Home({
 
   if (catalog.error) {
     console.error('Error cargando el catálogo:', catalog.error)
-    return (
-      <p className="px-6 py-32 text-center text-muted">
-        No hemos podido cargar el catálogo. Volvé a intentarlo en un momento.
-      </p>
-    )
+    return <CatalogError />
   }
 
   // Las novedades son un adorno de portada: si la tabla falla (o todavía no está
@@ -69,14 +67,25 @@ export default async function Home({
 
   return (
     <>
-      <Hero />
-      <Highlights newest={newest} promo={promo} news={latestNews} />
-      <Manifesto />
+      {!active && <>
+        <Hero />
+        <Highlights newest={newest} promo={promo} news={latestNews} />
+        <Manifesto />
+      </>}
+
+      {active && <h1 className="px-6 py-8 text-3xl font-light md:px-10">
+        {CATEGORIES.find((category) => category.slug === active)?.label}
+      </h1>}
 
       <CategoryBar active={active} />
+      <h2 className="sr-only">Prendas disponibles</h2>
 
       {products.length === 0 ? (
-        <p className="px-6 py-32 text-center text-muted">Nada por aquí todavía.</p>
+        <section className="px-6 py-20 text-center">
+          <h3 className="text-2xl font-light">Todavía no hay prendas {active ? 'en esta categoría' : 'disponibles'}</h3>
+          <p className="mt-3 text-muted">Podés explorar el resto del catálogo.</p>
+          <Link href="/#catalogo" className="label mt-6 inline-flex min-h-11 items-center underline underline-offset-4">Ver todas las prendas</Link>
+        </section>
       ) : (
         <ul className="grid grid-cols-2 gap-x-1 gap-y-12 px-1 py-10 md:grid-cols-3 xl:grid-cols-4">
           {products.map((p, i) => (
@@ -145,7 +154,7 @@ function HeroLink({
     <Link
       href={href}
       style={{ animationDelay: `${delay}ms` }}
-      className="rise label border-b border-paper/60 pb-1.5 text-paper transition-colors duration-300 ease-out hover:border-paper hover:text-paper"
+      className="rise label inline-flex min-h-11 items-center border-b border-paper/60 pb-1.5 text-paper transition-colors duration-300 ease-out hover:border-paper hover:text-paper"
     >
       {children}
     </Link>
@@ -269,25 +278,28 @@ function CategoryBar({ active }: { active?: string }) {
   return (
     <nav
       id="catalogo"
+      aria-label="Filtrar catálogo por categoría"
       className="flex scroll-mt-20 flex-wrap items-center justify-between gap-x-8 gap-y-3 border-y border-line px-6 py-5 md:px-10"
     >
       <div className="flex flex-wrap gap-x-8 gap-y-3">
         {CATEGORIES.map((c) => (
           <Link
             key={c.slug}
-            href={`/?categoria=${c.slug}`}
-            className={`label transition-colors duration-300 ease-out ${
+            href={`/?categoria=${c.slug}#catalogo`}
+            aria-current={active === c.slug ? 'page' : undefined}
+            className={`label inline-flex min-h-11 items-center transition-colors duration-300 ease-out ${
               active === c.slug ? 'text-ink' : 'text-muted hover:text-ink'
             }`}
           >
-            {c.label}
+            <NavigationLabel>{c.label}</NavigationLabel>
           </Link>
         ))}
       </div>
 
       <Link
         href="/#catalogo"
-        className={`label border-b pb-1 transition-colors duration-300 ease-out ${
+        aria-current={!active ? 'page' : undefined}
+        className={`label inline-flex min-h-11 items-center border-b pb-1 transition-colors duration-300 ease-out ${
           active ? 'border-line text-muted hover:text-ink' : 'border-ink text-ink'
         }`}
       >
@@ -337,8 +349,8 @@ function Workshop({ lead, inset }: { lead?: Product; inset?: Product }) {
               <em>patrones que se corrigen</em> hasta que caen bien.
             </p>
             <Link
-              href="/?categoria=chaquetas"
-              className="label mt-9 border-b border-ink pb-1.5 transition-colors duration-300 ease-out hover:text-muted"
+              href="/?categoria=chaquetas#catalogo"
+              className="label mt-9 inline-flex min-h-11 items-center border-b border-ink pb-1.5 transition-colors duration-300 ease-out hover:text-muted"
             >
               Ver las camperas
             </Link>

@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
 import { CATEGORIES, SHIPPING_FREE_FROM, formatPrice } from '@/lib/shop'
 import { useCart } from './cart'
 import { MobileNav } from './mobile-nav'
+import { NavigationLabel } from './navigation-label'
 
 const NOTES = [
   `Envío gratis a todo el país desde ${formatPrice(SHIPPING_FREE_FROM)}`,
@@ -14,13 +15,22 @@ const NOTES = [
 ]
 
 export function SiteHeader() {
+  return <Suspense fallback={<Header bleeds={false} />}><HeaderForRoute /></Suspense>
+}
+
+function HeaderForRoute() {
   const pathname = usePathname()
+  const params = useSearchParams()
+  const active = CATEGORIES.find((category) => category.slug === params.get('categoria'))?.slug
+  return <Header active={pathname === '/' ? active : undefined} bleeds={pathname === '/' && !active} />
+}
+
+function Header({ active, bleeds }: { active?: string; bleeds: boolean }) {
   const { count } = useCart()
   const [scrolled, setScrolled] = useState(false)
   const [note, setNote] = useState(0)
 
   // sólo la portada abre con una foto a sangre por debajo de la cabecera
-  const bleeds = pathname === '/'
   const overHero = bleeds && !scrolled
 
   useEffect(() => {
@@ -38,7 +48,7 @@ export function SiteHeader() {
   return (
     <>
       <div
-        className={`fixed inset-x-0 top-0 z-40 transition-colors duration-500 ease-out ${
+        className={`site-header fixed inset-x-0 top-0 z-40 transition-colors duration-500 ease-out ${
           overHero ? 'text-paper' : 'text-ink'
         }`}
       >
@@ -47,7 +57,7 @@ export function SiteHeader() {
         {overHero && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-gradient-to-b from-black/50 via-black/25 to-transparent"
+            className="header-veil pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-gradient-to-b from-black/50 via-black/25 to-transparent"
           />
         )}
 
@@ -71,20 +81,21 @@ export function SiteHeader() {
             overHero ? 'border-b border-transparent' : 'border-b border-line bg-paper/95 backdrop-blur'
           }`}
         >
-          <nav className="hidden h-14 grid-cols-[1fr_auto_1fr] items-center px-6 md:grid">
+          <nav aria-label="Navegación principal" className="hidden h-14 grid-cols-[auto_1fr_auto] items-center gap-6 px-6 lg:grid xl:grid-cols-[1fr_auto_1fr]">
             <div className="flex gap-7">
               {CATEGORIES.map((c) => (
                 <Link
                   key={c.slug}
-                  href={`/?categoria=${c.slug}`}
-                  className="label transition-colors duration-300 ease-out hover:opacity-60"
+                  href={`/?categoria=${c.slug}#catalogo`}
+                  aria-current={active === c.slug ? 'page' : undefined}
+                  className="label inline-flex min-h-11 items-center transition-colors duration-300 ease-out hover:opacity-60 aria-[current=page]:underline"
                 >
-                  {c.label}
+                  <NavigationLabel>{c.label}</NavigationLabel>
                 </Link>
               ))}
             </div>
 
-            <Link href="/" className="col-start-2 text-center">
+            <Link href="/" className="col-start-2 flex min-h-11 flex-col items-center justify-center text-center">
               <span className="block text-[1.4rem] font-light leading-none tracking-[0.42em] [text-indent:0.42em]">
                 HILO
               </span>
@@ -94,19 +105,19 @@ export function SiteHeader() {
             </Link>
 
             <div className="col-start-3 flex justify-end gap-7">
-              <Link href="/" className="label transition-colors duration-300 ease-out hover:opacity-60">
+              <Link href="/#catalogo" className="label inline-flex min-h-11 items-center transition-colors duration-300 ease-out hover:opacity-60">
                 Todo
               </Link>
               <Link
                 href="/carrito"
-                className="label transition-colors duration-300 ease-out hover:opacity-60"
+                className="label inline-flex min-h-11 items-center transition-colors duration-300 ease-out hover:opacity-60"
               >
                 Carrito ({count})
               </Link>
             </div>
           </nav>
 
-          <MobileNav />
+          <MobileNav active={active} />
         </div>
       </div>
 

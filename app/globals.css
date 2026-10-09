@@ -3,7 +3,7 @@
 @theme {
   --color-paper: #fbf8f5;
   --color-ink: #33301f;
-  --color-muted: #8a8676;
+  --color-muted: #706c5e;
   --color-line: #e3ded4;
   --font-display: var(--font-display), Georgia, serif;
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
@@ -39,15 +39,15 @@ body {
 /* etiqueta de interfaz: sans en versales con tracking amplio */
 .label {
   font-family: var(--font-sans);
-  font-size: 0.6875rem;
-  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 /* dato suelto (precios, tallas): la misma sans pero sin versales */
 .meta {
   font-family: var(--font-sans);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   letter-spacing: 0.02em;
 }
 
@@ -118,6 +118,26 @@ body {
 .reveal.is-in {
   opacity: 1;
   transform: none;
+}
+
+.reveal:focus-within {
+  opacity: 1;
+  transform: none;
+}
+
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+/* La portada también puede mostrar una carga o error, sin foto detrás del menú. */
+body:has([data-route-fallback]) .site-header {
+  color: var(--color-ink);
+  background: var(--color-paper);
+}
+
+body:has([data-route-fallback]) .header-veil {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -35,6 +35,9 @@ export const PROVINCES = [
 
 export type Province = (typeof PROVINCES)[number]
 
+/** El navegador acepta los mismos espacios exteriores que normaliza el servidor. */
+export const POSTAL_CODE_PATTERN = String.raw`\s*(?:[A-Za-z][0-9]{4}[A-Za-z]{3}|[0-9]{4})\s*`
+
 /** CPA de ocho caracteres, el vigente desde 1998: letra, cuatro dígitos, tres letras. */
 const CPA = /^[A-Za-z]\d{4}[A-Za-z]{3}$/
 

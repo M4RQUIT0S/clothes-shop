@@ -6,12 +6,14 @@ import { unitPrice, type Product } from '@/lib/shop'
 
 export function AddToCart({ product }: { product: Product }) {
   const { add } = useCart()
-  const [size, setSize] = useState(product.sizes[0] ?? '')
-  const [added, setAdded] = useState(false)
+  const [size, setSize] = useState(product.sizes.length === 1 ? product.sizes[0] : '')
+  const [message, setMessage] = useState('')
   const soldOut = product.stock < 1
+  const needsSize = product.sizes.length > 0 && !size
 
   const onAdd = () => {
-    add({
+    if (soldOut || needsSize) return
+    const result = add({
       slug: product.slug,
       name: product.name,
       size,
@@ -20,8 +22,7 @@ export function AddToCart({ product }: { product: Product }) {
       color: product.color,
       qty: 1,
     })
-    setAdded(true)
-    setTimeout(() => setAdded(false), 1800)
+    setMessage(result.error ?? `Agregado al carrito${size ? `, talle ${size}` : ''}.`)
   }
 
   return (
@@ -36,7 +37,7 @@ export function AddToCart({ product }: { product: Product }) {
                 type="button"
                 onClick={() => setSize(s)}
                 aria-pressed={s === size}
-                className={`label pb-1 transition-colors duration-300 ease-out ${
+                className={`label inline-flex min-h-11 min-w-11 items-center justify-center px-2 transition-colors duration-200 ease-out ${
                   s === size
                     ? 'border-b border-ink text-ink'
                     : 'border-b border-transparent text-muted hover:text-ink'
@@ -56,11 +57,14 @@ export function AddToCart({ product }: { product: Product }) {
       <button
         type="button"
         onClick={onAdd}
-        disabled={soldOut}
+        disabled={soldOut || needsSize}
         className="label mt-6 w-full bg-ink py-4 text-paper transition-colors duration-300 ease-out hover:bg-ink/85 disabled:cursor-not-allowed disabled:bg-line disabled:text-muted"
       >
-        {soldOut ? 'Agotado' : added ? 'Agregado al carrito ✓' : 'Agregar al carrito'}
+        {soldOut ? 'Agotado' : needsSize ? 'Elegí un talle para agregar' : 'Agregar al carrito'}
       </button>
+      <p role="status" aria-live="polite" aria-atomic="true" className="meta mt-3 text-ink">
+        {message}
+      </p>
     </div>
   )
 }

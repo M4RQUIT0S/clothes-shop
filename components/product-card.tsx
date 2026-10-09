@@ -47,8 +47,8 @@ export function ProductCard({ product, sizes }: { product: Product; sizes: strin
             )}
           </p>
         </div>
-        <QuickAdd product={product} />
       </div>
+      <div className="mt-2 px-1"><QuickAdd product={product} /></div>
     </article>
   )
 }

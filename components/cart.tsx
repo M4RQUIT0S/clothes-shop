@@ -1,152 +1,63 @@
 'use client'
 
 import { createContext, useContext, useSyncExternalStore } from 'react'
+import { createCartStore } from '@/lib/cart-store'
+import { addCartItem, sameLine, setCartQuantity, type CartItem } from '@/lib/cart'
 
-export type CartItem = {
-  slug: string
-  name: string
-  size: string
-  price_cents: number
-  image_url: string
-  color: string
-  qty: number
-}
+export type { CartItem } from '@/lib/cart'
 
 type CartContext = {
   items: CartItem[]
-  add: (item: CartItem) => void
+  add: (item: CartItem) => { error?: string }
   setQty: (slug: string, size: string, qty: number) => void
   remove: (slug: string, size: string) => void
   clear: () => void
   count: number
   total: number
+  warning?: string
 }
 
 const Ctx = createContext<CartContext | null>(null)
 const KEY = 'clothes-shop-cart'
 
-/**
- * El carrito vive en localStorage y React lo lee con useSyncExternalStore.
- *
- * La versión anterior guardaba el carrito en un useState y lo rehidrataba llamando a
- * setState dentro de un efecto, que es justo lo que prohíbe react-hooks/set-state-in-effect:
- * provoca un render en cascada en cada montaje. No se podía arreglar con un inicializador
- * perezoso porque el servidor no tiene localStorage y el HTML no coincidiría con el del
- * cliente. useSyncExternalStore existe para este caso exacto: da una instantánea de
- * servidor (carrito vacío) para el HTML, y en cuanto hidrata cambia a la real sin aviso
- * de hidratación ni efecto de por medio.
- */
-
-const VACIO: CartItem[] = []
-
-/**
- * getSnapshot tiene que devolver la MISMA referencia mientras el contenido no cambie,
- * o React se queda renderizando en bucle. De ahí esta caché por texto crudo.
- */
-let cache: { raw: string | null; items: CartItem[] } = { raw: null, items: VACIO }
-
-const listeners = new Set<() => void>()
-
-/**
- * Hay que distinguir «no hay nada guardado» (null) de «no hay almacenamiento»
- * (bloqueado, modo privado, cuota). Si los mezclamos, un navegador sin storage
- * parecería tener siempre el carrito vacío y no se podría ni comprar en memoria.
- */
-const SIN_ALMACENAMIENTO = Symbol('sin almacenamiento')
-
-// React llama a getSnapshot en cada render y comprobación: sin este cerrojo, un
-// navegador sin almacenamiento escupe el mismo error cientos de veces por sesión y
-// entierra en la consola cualquier otra cosa que hubiera que ver.
-let yaAvisado = false
-
-function leerCrudo(): string | null | typeof SIN_ALMACENAMIENTO {
-  try {
-    return localStorage.getItem(KEY)
-  } catch (error) {
-    if (!yaAvisado) {
-      yaAvisado = true
-      console.error('Sin acceso al almacenamiento; el carrito vivirá sólo en memoria:', error)
-    }
-    return SIN_ALMACENAMIENTO
-  }
-}
-
-function getSnapshot(): CartItem[] {
-  const raw = leerCrudo()
-
-  // Sin almacenamiento, la caché en memoria ES el carrito: se pierde al recargar,
-  // pero durante la sesión se puede añadir, cambiar cantidades y pagar.
-  if (raw === SIN_ALMACENAMIENTO) return cache.items
-
-  if (raw !== cache.raw) {
-    let items = VACIO
-    try {
-      if (raw) items = JSON.parse(raw)
-    } catch (error) {
-      console.error('El carrito guardado no es JSON válido; se descarta:', error)
-    }
-    cache = { raw, items }
-  }
-  return cache.items
-}
-
-const getServerSnapshot = () => VACIO
+// El acceso a localStorage es diferido: el módulo también se carga al renderizar en servidor.
+const store = createCartStore({
+  read: () => localStorage.getItem(KEY),
+  write: (raw) => localStorage.setItem(KEY, raw),
+})
+const { getSnapshot, getServerSnapshot, save: guardar } = store
 
 function subscribe(listener: () => void) {
-  listeners.add(listener)
-  // 'storage' sólo salta en las OTRAS pestañas; las de esta las avisa guardar().
+  const unsubscribe = store.subscribe(listener)
+  // Los cambios de otras pestañas se leen al recibir este evento del navegador.
   window.addEventListener('storage', listener)
   return () => {
-    listeners.delete(listener)
+    unsubscribe()
     window.removeEventListener('storage', listener)
   }
 }
-
-function guardar(items: CartItem[]) {
-  const raw = JSON.stringify(items)
-
-  // La caché se actualiza SIEMPRE y antes de intentar persistir. Si se dejara para
-  // después del setItem, un almacenamiento bloqueado dejaría el store sin cambiar y
-  // la interfaz no reaccionaría a añadir, quitar ni cambiar cantidades.
-  cache = { raw, items }
-
-  try {
-    localStorage.setItem(KEY, raw)
-  } catch (error) {
-    console.error('No se pudo guardar el carrito; sigue sólo en memoria:', error)
-  }
-
-  listeners.forEach((avisar) => avisar())
-}
-
-const sameLine = (a: CartItem, slug: string, size: string) => a.slug === slug && a.size === size
-
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const items = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const { items, warning } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   // Lee del store y no de `items` del render: dos llamadas seguidas (añadir dos tallas
   // sin soltar) verían la misma instantánea vieja y la segunda pisaría a la primera.
-  const update = (fn: (prev: CartItem[]) => CartItem[]) => guardar(fn(getSnapshot()))
+  const update = (fn: (prev: CartItem[]) => CartItem[]) => guardar(fn(getSnapshot().items))
 
-  const add = (item: CartItem) =>
-    update((prev) =>
-      prev.some((i) => sameLine(i, item.slug, item.size))
-        ? prev.map((i) => (sameLine(i, item.slug, item.size) ? { ...i, qty: i.qty + item.qty } : i))
-        : [...prev, item]
-    )
+  const add = (item: CartItem) => {
+    const result = addCartItem(getSnapshot().items, item)
+    if (!result.error) guardar(result.items)
+    return { error: result.error }
+  }
 
   const setQty = (slug: string, size: string, qty: number) =>
-    update((prev) =>
-      qty < 1
-        ? prev.filter((i) => !sameLine(i, slug, size))
-        : prev.map((i) => (sameLine(i, slug, size) ? { ...i, qty } : i))
-    )
+    update((prev) => setCartQuantity(prev, slug, size, qty))
 
   const remove = (slug: string, size: string) =>
     update((prev) => prev.filter((i) => !sameLine(i, slug, size)))
 
   const value: CartContext = {
     items,
+    warning,
     add,
     setQty,
     remove,
