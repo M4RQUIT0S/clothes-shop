@@ -19,3 +19,16 @@ test('sin medidas para la categoría o los talles no hay tabla', () => {
   assert.equal(sizeGuideFor({ slug: 'x', category: 'pantalones', sizes: ['XXS'] }), null)
   assert.equal(sizeGuideFor({ slug: 'x', category: 'camisetas', sizes: [] }), null)
 })
+
+test('una tabla de categoría nunca se presenta como medida de la prenda', () => {
+  const guide = sizeGuideFor({ slug: 'remera-x', category: 'camisetas', sizes: ['M'] })
+  assert.equal(guide?.verified, false)
+})
+
+test('las tablas propias de una prenda declaran si están verificadas', () => {
+  // Hoy ninguna lo está: son de referencia hasta que lleguen las del patrón real.
+  for (const slug of ['camiseta-oversize-negra', 'pantalon-lino-arena', 'bomber-tecnica-negra']) {
+    const guide = sizeGuideFor({ slug, category: 'x', sizes: ['M'] })
+    assert.equal(guide?.verified, false, slug)
+  }
+})

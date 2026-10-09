@@ -50,7 +50,7 @@ export default function CartPage() {
           Te enviamos los detalles por email. Tu referencia es{' '}
           <span className="italic text-ink">{orderId.slice(0, 8)}</span>.
         </p>
-        <Link href="/" className="label mt-10 inline-block border-b border-ink pb-1">
+        <Link href="/#catalogo" className="label mt-10 inline-flex min-h-11 min-w-11 items-center border-b border-ink">
           Seguir comprando
         </Link>
       </section>
@@ -63,7 +63,7 @@ export default function CartPage() {
         <h1 className="text-[2.4rem] font-light">Tu carrito está vacío</h1>
         {warning && <p role="status" className="mt-4 text-muted">{warning}</p>}
         <p className="mt-4 text-muted">Trece prendas esperando. Empezá por donde quieras.</p>
-        <Link href="/" className="label mt-10 inline-block border-b border-ink pb-1">
+        <Link href="/#catalogo" className="label mt-10 inline-flex min-h-11 min-w-11 items-center border-b border-ink">
           Ver el catálogo
         </Link>
       </section>

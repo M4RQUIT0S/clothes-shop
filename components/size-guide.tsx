@@ -7,13 +7,15 @@ export function SizeGuide({ guide, selected }: { guide: Guide; selected: string 
   return (
     <details className="group mt-6 border-t border-line">
       <summary className="label flex min-h-11 cursor-pointer list-none items-center justify-between text-ink transition-colors duration-200 hover:text-muted [&::-webkit-details-marker]:hidden">
-        Guía de talles
+        {guide.verified ? 'Guía de talles' : 'Guía de talles orientativa'}
         <span aria-hidden="true" className="text-base transition-transform duration-200 group-open:rotate-45">+</span>
       </summary>
       <div className="overflow-x-auto pb-2">
         <table className="meta w-full text-left tabular-nums">
           <caption className="pb-3 text-left text-muted">
-            Medidas de la prenda extendida, en centímetros: anchos de lado a lado, largos de punta a punta. Compará con una prenda tuya que te quede bien.
+            {guide.verified
+              ? 'Medidas de esta prenda extendida, en centímetros: anchos de lado a lado, largos de punta a punta. Compará con una prenda tuya que te quede bien.'
+              : 'Medidas orientativas, no tomadas de esta prenda: sirven de referencia, no para asegurar el talle. En centímetros, con la prenda extendida: anchos de lado a lado, largos de punta a punta.'}
           </caption>
           <thead>
             <tr className="border-b border-line text-muted">
