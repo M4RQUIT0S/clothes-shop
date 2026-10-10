@@ -3,6 +3,10 @@ import test from 'node:test'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Las pruebas negativas intentan insertar: nunca deben apuntar a producción.
+if (!url || !key || !['127.0.0.1', 'localhost'].includes(new URL(url).hostname)) {
+  throw new Error('La integración requiere Supabase local y sus variables en .env.development.local.')
+}
 const headers = { apikey: key, Authorization: `Bearer ${key}` }
 
 test('el catálogo es legible con la clave pública', async () => {
