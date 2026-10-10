@@ -128,6 +128,17 @@ test('si la pasarela falla, el pedido queda y el reintento con la misma clave co
   assert.equal(pay.calls[1].orderId, store.rows[0].id)
 })
 
+test('guarda el usuario verificado y un cambio de cuenta no reutiliza el intento', async () => {
+  const store = memoryStore([remera])
+  const first = await placeOrder({ ...deps(store, gateway()), userId: 'cuenta-a' }, input)
+  assert.equal(first.ok, true)
+  assert.equal(store.rows[0].user_id, 'cuenta-a')
+  const other = await placeOrder({ ...deps(store, gateway()), userId: 'cuenta-b' }, input)
+  assert.equal(other.ok, false)
+  assert.equal(!other.ok && other.code, 'IDEMPOTENCY_CONFLICT')
+  assert.equal(store.rows.length, 1)
+})
+
 test('la misma clave con otro contenido se rechaza y no devuelve el pedido ajeno', async () => {
   const store = memoryStore([remera])
   await placeOrder(deps(store, gateway()), input)

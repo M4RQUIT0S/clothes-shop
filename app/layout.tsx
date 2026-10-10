@@ -3,6 +3,8 @@ import { Cormorant_Garamond, Inter } from 'next/font/google'
 import { CartProvider } from '@/components/cart'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
+import { PrivacyNotice } from '@/components/privacy-notice'
+import { AuthProvider } from '@/components/auth'
 import './globals.css'
 
 const display = Cormorant_Garamond({
@@ -32,11 +34,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${display.variable} ${body.variable}`}
     >
       <body className="antialiased">
-        <CartProvider>
+        <AuthProvider><CartProvider>
           <SiteHeader />
           <main>{children}</main>
           <SiteFooter />
-        </CartProvider>
+          <PrivacyNotice />
+        </CartProvider></AuthProvider>
       </body>
     </html>
   )

@@ -42,6 +42,7 @@ export function MobileNav({ active }: { active?: string }) {
         className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-paper px-6 py-8 text-ink backdrop:bg-ink/40">
         <button type="button" onClick={close} className="label min-h-11 px-3 underline underline-offset-4">Cerrar menú</button>
         <nav aria-label="Categorías" className="mt-8 flex flex-col items-center justify-center gap-6">
+          <Link href="/cuenta" onClick={close} className="label inline-flex min-h-11 items-center underline underline-offset-4">Mi cuenta</Link>
           {CATEGORIES.map((c, i) => (
             <Link
               key={c.slug}

@@ -105,6 +105,7 @@ function Header({ active, bleeds }: { active?: string; bleeds: boolean }) {
             </Link>
 
             <div className="col-start-3 flex justify-end gap-7">
+              <Link href="/cuenta" className="label inline-flex min-h-11 items-center hover:opacity-60">Mi cuenta</Link>
               <Link href="/#catalogo" className="label inline-flex min-h-11 items-center transition-colors duration-300 ease-out hover:opacity-60">
                 Todo
               </Link>

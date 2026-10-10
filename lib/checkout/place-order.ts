@@ -12,6 +12,7 @@ export type NewOrderRow = {
   idempotency_key: string
   request_hash: string
   status: 'awaiting_payment'
+  user_id?: string | null
   full_name: string
   email: string
   address: string
@@ -53,6 +54,7 @@ export type PlaceOrderDeps = {
   receiptSecret: string
   siteUrl: string
   newId?: () => string
+  userId?: string | null
 }
 
 export const PlaceOrderSchema = CheckoutSchema.extend({
@@ -74,9 +76,11 @@ type Parsed = z.output<typeof PlaceOrderSchema>
  * Huella de lo que pidió el comprador con una clave. Ordena las líneas para que el
  * orden del carrito no cuente como contenido distinto.
  */
-function requestHash({ full_name, email, address, province, postal_code, items }: Parsed) {
+function requestHash({ full_name, email, address, province, postal_code, items }: Parsed, userId: string | null) {
   const lines = items.map(({ slug, size, qty }) => [slug, size, qty]).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
-  return createHash('sha256').update(JSON.stringify([full_name, email, address, province, postal_code, lines])).digest('hex')
+  const fields = [full_name, email, address, province, postal_code, lines]
+  // Conserva la huella de los pedidos invitados anteriores a las cuentas.
+  return createHash('sha256').update(JSON.stringify(userId ? [...fields, userId] : fields)).digest('hex')
 }
 
 /**
@@ -89,7 +93,7 @@ export async function placeOrder(deps: PlaceOrderDeps, input: PlaceOrderInput): 
   const parsed = PlaceOrderSchema.safeParse(input)
   if (!parsed.success) return { ok: false, code: 'INVALID', error: parsed.error.issues[0].message }
   const data = parsed.data
-  const hash = requestHash(data)
+  const hash = requestHash(data, deps.userId ?? null)
 
   try {
     const existing = await deps.store.findByIdempotencyKey(data.idempotency_key)
@@ -110,6 +114,7 @@ export async function placeOrder(deps: PlaceOrderDeps, input: PlaceOrderInput): 
       idempotency_key: data.idempotency_key,
       request_hash: hash,
       status: 'awaiting_payment',
+      user_id: deps.userId ?? null,
       full_name: data.full_name,
       email: data.email,
       address: data.address,

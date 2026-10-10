@@ -39,7 +39,7 @@ if (!url || !key) {
   )
 }
 
-export const supabase = createClient(url, key)
+export const supabase = createClient(url, key, { accessToken: async () => null })
 
 // Sin decimales: en pesos los centavos no se usan y "$ 24.900,00" solo añade ruido.
 // La columna sigue siendo price_cents (centavos de peso), así que el redondeo es de

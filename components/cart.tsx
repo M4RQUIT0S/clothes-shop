@@ -1,9 +1,11 @@
 'use client'
 
-import { createContext, useContext, useSyncExternalStore } from 'react'
-import { createCartStore } from '@/lib/cart-store'
+import { createContext, useContext, useEffect, useSyncExternalStore } from 'react'
+import { createSyncedCart, type CartSnapshot } from '@/lib/synced-cart'
+import { mutateAccountCart, readAccountCart } from '@/lib/account-cart-api'
+import { useAuth } from './auth'
 import {
-  addCartItem, applyQuotedPrices, removeOrderedLines, sameLine, setCartQuantity, type CartItem, type OrderedLine,
+  addCartItem, applyQuotedPrices, MAX_ITEM_QUANTITY, removeOrderedLines, type CartItem, type OrderedLine,
 } from '@/lib/cart'
 
 export type { CartItem } from '@/lib/cart'
@@ -21,61 +23,69 @@ type CartContext = {
   count: number
   total: number
   warning?: string
+  sync: CartSnapshot['sync']
+  ready: boolean
+  retrySync: () => Promise<void>
+  ownerId: string | null
 }
 
 const Ctx = createContext<CartContext | null>(null)
-const KEY = 'clothes-shop-cart'
-
-// El acceso a localStorage es diferido: el módulo también se carga al renderizar en servidor.
-const store = createCartStore({
-  read: () => localStorage.getItem(KEY),
-  write: (raw) => localStorage.setItem(KEY, raw),
+const store = createSyncedCart({
+  storage: {
+    read: (key) => localStorage.getItem(key), write: (key, raw) => localStorage.setItem(key, raw),
+    remove: (key) => localStorage.removeItem(key),
+    entries: (prefix) => Object.keys(localStorage).filter((key) => key.startsWith(prefix)).map((key) => [key, localStorage.getItem(key)!]),
+  },
+  readRemote: readAccountCart, mutateRemote: mutateAccountCart,
 })
-const { getSnapshot, getServerSnapshot, save: guardar } = store
-
-function subscribe(listener: () => void) {
-  const unsubscribe = store.subscribe(listener)
-  // Los cambios de otras pestañas se leen al recibir este evento del navegador.
-  window.addEventListener('storage', listener)
-  return () => {
-    unsubscribe()
-    window.removeEventListener('storage', listener)
-  }
-}
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { items, warning } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const auth = useAuth()
+  const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot)
+  const owner = auth.user?.id ?? null
+  const correctOwner = auth.ready && snapshot.owner === owner
+  const items = correctOwner ? snapshot.items : []
+  const { warning, sync, loading } = snapshot
+  useEffect(() => { if (auth.ready) void store.setOwner(owner) }, [owner, auth.ready])
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === 'visible') void store.refresh() }
+    window.addEventListener('storage', refresh)
+    window.addEventListener('online', refresh)
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    const timer = window.setInterval(() => { if (store.getSnapshot().owner) refresh() }, 15_000)
+    return () => {
+      window.removeEventListener('storage', refresh); window.removeEventListener('online', refresh)
+      window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh)
+      clearInterval(timer)
+    }
+  }, [])
 
-  // Lee del store y no de `items` del render: dos llamadas seguidas (añadir dos tallas
-  // sin soltar) verían la misma instantánea vieja y la segunda pisaría a la primera.
-  const update = (fn: (prev: CartItem[]) => CartItem[]) => guardar(fn(getSnapshot().items))
-
+  const canChange = () => auth.ready && store.getSnapshot().owner === owner && !store.getSnapshot().loading
   const add = (item: CartItem) => {
-    const result = addCartItem(getSnapshot().items, item)
-    if (!result.error) guardar(result.items)
+    if (!canChange()) return { error: 'Estamos recuperando tu carrito. Probá en un momento.' }
+    const result = addCartItem(store.getSnapshot().items, item)
+    if (!result.error) store.change('add', [item], [item])
     return { error: result.error }
   }
-
-  const setQty = (slug: string, size: string, qty: number) =>
-    update((prev) => setCartQuantity(prev, slug, size, qty))
-
-  const remove = (slug: string, size: string) =>
-    update((prev) => prev.filter((i) => !sameLine(i, slug, size)))
 
   const value: CartContext = {
     items,
     warning,
     add,
-    setQty,
-    remove,
-    clear: () => update(() => []),
+    setQty: (slug, size, qty) => { if (canChange() && Number.isInteger(qty) && qty >= 1 && qty <= MAX_ITEM_QUANTITY) store.change('set', [{ slug, size, qty }]) },
+    remove: (slug, size) => { if (canChange()) store.change('remove', [{ slug, size, qty: 0 }]) },
+    clear: () => { if (canChange()) store.change('clear', []) },
+    sync, ready: correctOwner && !loading, retrySync: store.refresh, ownerId: owner,
     syncPrices: (lines) => {
-      const prev = getSnapshot().items
+      if (!canChange()) return
+      const prev = store.getSnapshot().items
       const next = applyQuotedPrices(prev, lines)
-      if (next !== prev) guardar(next)
+      if (next !== prev) store.setPrices(next)
     },
     consumeOrder: (lines) => {
-      const { items: rest, changed } = removeOrderedLines(getSnapshot().items, lines)
-      guardar(rest)
+      if (!canChange()) return []
+      const { changed } = removeOrderedLines(store.getSnapshot().items, lines)
+      store.change('consume', lines)
       return changed
     },
     count: items.reduce((n, i) => n + i.qty, 0),

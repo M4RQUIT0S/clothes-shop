@@ -31,7 +31,7 @@ const problemText = (p: LineProblem) => ({
 })[p.reason]
 
 export default function CartPage() {
-  const { items, setQty, remove, total: localTotal, warning, syncPrices } = useCart()
+  const { items, setQty, remove, total: localTotal, warning, syncPrices, ready, sync, retrySync, ownerId } = useCart()
   const [phase, setPhase] = useState<Phase>('idle')
   const [notice, setNotice] = useState<Notice | null>(null)
   const [attempt, setAttempt] = useState<PlaceOrderInput | null>(null)
@@ -57,6 +57,7 @@ export default function CartPage() {
           orderId: result.orderId,
           receiptPath: receipt.pathname + receipt.search,
           lines: payload.items,
+          ownerId,
         }))
       } catch {
         // Sin almacenamiento, el recibo igual funciona; sólo no se podrá vaciar el carrito solo.
@@ -122,6 +123,8 @@ export default function CartPage() {
     send(payload)
   }
 
+  if (!ready) return <section className="px-6 py-24 text-center"><p role="status">Recuperando tu carrito…</p></section>
+
   if (items.length === 0) {
     return (
       <section className="mx-auto max-w-lg px-6 py-32 text-center">
@@ -139,6 +142,11 @@ export default function CartPage() {
     <section className="mx-auto grid max-w-6xl gap-12 px-6 py-16 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-20">
       <div className="min-w-0">
         <h1 className="text-[2.4rem] font-light">Carrito</h1>
+        <p role="status" className="meta mt-3 text-muted">
+          {ownerId ? sync === 'syncing' ? 'Sincronizando con tu cuenta…' : sync === 'error' ? 'Hay cambios pendientes de sincronizar.' : 'Guardado en tu cuenta.' : 'Guardado en este navegador.'}
+        </p>
+        {sync === 'error' && <button type="button" onClick={() => void retrySync()} className="meta mt-2 min-h-11 underline underline-offset-4">Reintentar sincronización</button>}
+        {!ownerId && <Link href="/cuenta" className="meta mt-2 inline-flex min-h-11 items-center underline underline-offset-4">Iniciá sesión para guardar tu carrito en tu cuenta</Link>}
         {warning && <p role="status" className="mt-4 text-muted">{warning}</p>}
 
         <ul className="mt-10 divide-y divide-line border-y border-line">
@@ -263,6 +271,14 @@ export default function CartPage() {
             hint="CPA (C1425DKE) o los cuatro dígitos de siempre (1425)"
           />
         </fieldset>
+
+        <p className="mt-6 font-sans text-sm leading-relaxed text-muted">
+          Usamos tus datos para gestionar el pedido. Podés leer la{' '}
+          <Link href="/privacidad" className="inline-flex min-h-11 items-center text-ink underline underline-offset-4">política de privacidad</Link>
+          {' '}y la{' '}
+          <Link href="/cookies" className="inline-flex min-h-11 items-center text-ink underline underline-offset-4">política de cookies</Link>.
+          {' '}Ambas son borradores con datos pendientes de completar.
+        </p>
 
         {/* Regiones vivas siempre montadas: un lector de pantalla anuncia de forma fiable
             el cambio de texto, no un elemento que aparece ya lleno. */}

@@ -10,22 +10,22 @@ import { PENDING_ORDER_KEY, parsePendingOrder } from '@/lib/pending-order'
  * pestaña, se conserva y se avisa. Si el pago falló, el carrito queda como estaba.
  */
 export function ReceiptCart({ orderId, placed }: { orderId: string; placed: boolean }) {
-  const { consumeOrder } = useCart()
+  const { consumeOrder, ready, ownerId } = useCart()
   const [kept, setKept] = useState<CartItem[]>([])
 
   useEffect(() => {
-    if (!placed) return
+    if (!placed || !ready) return
     let raw: string | null = null
     try { raw = localStorage.getItem(PENDING_ORDER_KEY) } catch { return }
     const pending = parsePendingOrder(raw)
-    if (!pending || pending.orderId !== orderId) return
+    if (!pending || pending.orderId !== orderId || (pending.ownerId ?? null) !== ownerId) return
     // Se borra primero: si algo falla después, no se vuelve a consumir en otra visita.
     try { localStorage.removeItem(PENDING_ORDER_KEY) } catch { return }
     const changed = consumeOrder(pending.lines)
     // El aviso depende de lo que había en el carrito del navegador, no del servidor.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (changed.length) setKept(changed)
-  }, [orderId, placed, consumeOrder])
+  }, [orderId, placed, consumeOrder, ready, ownerId])
 
   if (!kept.length) return null
   return (

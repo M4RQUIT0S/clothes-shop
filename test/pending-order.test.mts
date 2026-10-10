@@ -23,3 +23,9 @@ test('lo guardado corrupto, ajeno o manipulado se descarta en vez de romper', ()
     assert.equal(parsePendingOrder(raw), null, String(raw))
   }
 })
+
+test('el pedido pendiente conserva la cuenta original para no consumir otro carrito', () => {
+  const owned = { ...pending, ownerId: '10000000-0000-4000-8000-000000000001' }
+  assert.deepEqual(parsePendingOrder(serializePendingOrder(owned)), owned)
+  assert.equal(parsePendingOrder(JSON.stringify({ ...pending, ownerId: 'otra' })), null)
+})

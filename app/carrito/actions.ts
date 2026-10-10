@@ -8,6 +8,7 @@ import { readCheckoutConfig } from '@/lib/checkout/server-config'
 import { adminClient, loadCatalog, orderStore } from '@/lib/checkout/supabase-store'
 import { mercadoPagoCheckout } from '@/lib/mercadopago'
 import { supabase } from '@/lib/shop'
+import { serverClient } from '@/lib/supabase/server'
 
 export type { PlaceOrderInput, PlaceOrderResult } from '@/lib/checkout/place-order'
 
@@ -48,10 +49,15 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     return { ok: false, code: 'PAYMENT_UNAVAILABLE', error: 'Los pagos no están disponibles en este momento. Probá más tarde.' }
   }
   const { supabaseUrl, serviceRoleKey, receiptSecret, siteUrl } = config.config
+  const { data, error } = await (await serverClient()).auth.getClaims()
+  if (error && error.name !== 'AuthSessionMissingError') {
+    return { ok: false, code: 'ERROR', error: 'No pudimos verificar tu sesión. Probá nuevamente.' }
+  }
   return placeOrder({
     store: orderStore(adminClient(supabaseUrl, serviceRoleKey)),
     createCheckout: mercadoPagoCheckout(config.config),
     receiptSecret,
     siteUrl,
+    userId: data?.claims.sub ?? null,
   }, input)
 }

@@ -42,6 +42,9 @@ export function SiteFooter() {
 
         <Column title="Tienda">
           <Item href="/carrito">Carrito</Item>
+          <Item href="/cuenta">Mi cuenta</Item>
+          <Item href="/privacidad">Política de privacidad</Item>
+          <Item href="/cookies">Política de cookies</Item>
           <li className="meta text-muted">Envío gratis desde {formatPrice(SHIPPING_FREE_FROM)}</li>
           <li className="meta text-muted">Devoluciones en 30 días</li>
         </Column>
