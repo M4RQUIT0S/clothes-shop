@@ -11,7 +11,7 @@ export type CartItem = {
   qty: number
 }
 
-export const sameLine = (item: CartItem, slug: string, size: string) =>
+export const sameLine = (item: Pick<CartItem, 'slug' | 'size'>, slug: string, size: string) =>
   item.slug === slug && item.size === size
 
 const validQuantity = (qty: number) =>

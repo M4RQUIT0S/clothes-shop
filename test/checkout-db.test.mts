@@ -197,7 +197,8 @@ test('sobre datos existentes: un talle por fila en cero y los pedidos de la demo
 test('las migraciones se aplican en orden de fecha', () => {
   const files = migrationFiles()
   assert.deepEqual(files, [...files].sort())
-  assert.equal(files.at(-1), CHECKOUT)
+  assert.ok(files.includes(CHECKOUT))
+  assert.ok(files.indexOf(CHECKOUT) > files.indexOf('20260908113236_secure_order_inserts.sql'))
 })
 
 test('el seed local se aplica sobre las migraciones y deja talles con y sin stock', async () => {
