@@ -46,3 +46,17 @@ from unnest(array[
   'vestido-camisero-oliva'
 ]) with ordinality as s(slug, ord)
 where p.slug = s.slug;
+
+-- Stock por talle de DEMOSTRACIÓN, sólo para la base local (supabase db reset). No es
+-- stock real: en producción lo carga la tienda. Hay talles agotados y talles con
+-- pocas unidades a propósito, para ver esos estados en la ficha y en el carrito.
+insert into product_variants (product_id, size, stock)
+select p.id, s.size,
+  case
+    when (p.slug, s.size) in (('camiseta-algodon-organico', 'XS'), ('vaquero-recto-indigo', '48')) then 0
+    when s.ord % 3 = 0 then 2
+    else 8
+  end
+from products p
+cross join lateral unnest(p.sizes) with ordinality as s(size, ord)
+on conflict (product_id, size) do nothing;

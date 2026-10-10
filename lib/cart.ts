@@ -83,3 +83,19 @@ export function removeOrderedLines(items: CartItem[], ordered: OrderedLine[]): {
     changed: items.filter((item) => wasOrdered(item) && !isOrderedAsIs(item)),
   }
 }
+
+/**
+ * Lleva al carrito los precios que cotizó el servidor, para que lo que se ve sea lo
+ * que se cobra. Devuelve el mismo array si nada cambió: así guardarlo no dispara otro
+ * render ni otra cotización.
+ */
+export function applyQuotedPrices(items: CartItem[], lines: { slug: string; size: string; unit_price_cents: number }[]): CartItem[] {
+  let changed = false
+  const next = items.map((item) => {
+    const line = lines.find((l) => sameLine(item, l.slug, l.size))
+    if (!line || line.unit_price_cents === item.price_cents) return item
+    changed = true
+    return { ...item, price_cents: line.unit_price_cents }
+  })
+  return changed ? next : items
+}

@@ -16,7 +16,7 @@ const remera: QuoteProduct = {
 }
 
 function memoryStore(catalog: QuoteProduct[]) {
-  const rows: (NewOrderRow & { payment_url: string | null; mp_preference_id: string | null })[] = []
+  const rows: (NewOrderRow & { payment_url: string | null; mp_order_id: string | null })[] = []
   const calls = { inserts: 0, catalogReads: 0 }
   const store: OrderStore & { rows: typeof rows; calls: typeof calls; failInsert?: boolean; raceOnInsert?: NewOrderRow } = {
     rows, calls,
@@ -30,16 +30,16 @@ function memoryStore(catalog: QuoteProduct[]) {
       if (store.failInsert) throw new Error('db down')
       if (store.raceOnInsert) {
         // Otra petición con la misma clave ganó la carrera justo antes.
-        rows.push({ ...store.raceOnInsert, payment_url: 'https://pago/ganador', mp_preference_id: 'pref-ganador' })
+        rows.push({ ...store.raceOnInsert, payment_url: 'https://pago/ganador', mp_order_id: 'pref-ganador' })
         store.raceOnInsert = undefined
       }
       if (rows.some((r) => r.idempotency_key === row.idempotency_key)) return 'duplicate_key'
-      rows.push({ ...row, payment_url: null, mp_preference_id: null })
+      rows.push({ ...row, payment_url: null, mp_order_id: null })
       return 'inserted'
     },
-    async savePayment(orderId, { preferenceId, url }) {
+    async savePayment(orderId, { checkoutId, url }) {
       const row = rows.find((r) => r.id === orderId)!
-      row.mp_preference_id = preferenceId
+      row.mp_order_id = checkoutId
       row.payment_url = url
     },
   }
@@ -58,7 +58,7 @@ function gateway(fail = 0) {
   const create: CheckoutGateway = async (order) => {
     calls.push(order)
     if (failures-- > 0) throw new Error('mercado pago caído')
-    return { preferenceId: `pref-${calls.length}`, url: `https://pago/${order.orderId}` }
+    return { checkoutId: `pref-${calls.length}`, url: `https://pago/${order.orderId}` }
   }
   return Object.assign(create, { calls })
 }

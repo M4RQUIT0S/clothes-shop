@@ -47,8 +47,8 @@ export function orderStore(db: SupabaseClient): OrderStore {
       throw new Error(`No se pudo guardar el pedido: ${error.message}`)
     },
 
-    async savePayment(orderId, { preferenceId, url }) {
-      const { error } = await db.from('orders').update({ mp_preference_id: preferenceId, payment_url: url }).eq('id', orderId)
+    async savePayment(orderId, { checkoutId, url }) {
+      const { error } = await db.from('orders').update({ mp_order_id: checkoutId, payment_url: url }).eq('id', orderId)
       if (error) throw new Error(`No se pudo guardar el cobro del pedido: ${error.message}`)
     },
   }
@@ -67,18 +67,20 @@ export async function confirmPayment(db: SupabaseClient, orderId: string, paymen
 }
 
 /** Lo que muestra el recibo y lo que lleva el correo. Incluye datos personales: sólo servidor. */
-export type ReceiptOrder = EmailOrder & {
+export type ReceiptOrder = Omit<EmailOrder, 'items'> & {
   status: string
   payment_status: string | null
   email_sent_at: string | null
   created_at: string
   items: OrderLine[]
+  mp_order_id: string | null
+  payment_url: string | null
 }
 
 export async function loadReceiptOrder(db: SupabaseClient, orderId: string): Promise<ReceiptOrder | null> {
   const { data, error } = await db
     .from('orders')
-    .select('id, full_name, email, items, subtotal_cents, shipping_cents, total_cents, status, payment_status, email_sent_at, created_at')
+    .select('id, full_name, email, items, subtotal_cents, shipping_cents, total_cents, status, payment_status, email_sent_at, created_at, mp_order_id, payment_url')
     .eq('id', orderId)
     .maybeSingle()
   if (error) throw new Error(`No se pudo leer el pedido: ${error.message}`)

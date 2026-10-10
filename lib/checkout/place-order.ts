@@ -34,7 +34,7 @@ export type OrderStore = {
   findByIdempotencyKey: (key: string) => Promise<StoredOrder | null>
   /** 'duplicate_key' cuando otra petición con la misma clave insertó antes. */
   insert: (row: NewOrderRow) => Promise<'inserted' | 'duplicate_key'>
-  savePayment: (orderId: string, payment: { preferenceId: string; url: string }) => Promise<void>
+  savePayment: (orderId: string, payment: { checkoutId: string; url: string }) => Promise<void>
 }
 
 /** Crea el cobro en la pasarela para un pedido ya guardado y devuelve a dónde mandar al comprador. */
@@ -45,7 +45,7 @@ export type CheckoutGateway = (order: {
   shipping_cents: number
   total_cents: number
   receiptUrl: string
-}) => Promise<{ preferenceId: string; url: string }>
+}) => Promise<{ checkoutId: string; url: string }>
 
 export type PlaceOrderDeps = {
   store: OrderStore
@@ -141,7 +141,7 @@ async function resume(deps: PlaceOrderDeps, order: StoredOrder, hash: string): P
   const receiptUrl = `${deps.siteUrl}/pedido/${order.id}?t=${receiptToken(deps.receiptSecret, order.id)}`
   if (order.payment_url) return { ok: true, orderId: order.id, receiptUrl, paymentUrl: order.payment_url }
 
-  let payment: { preferenceId: string; url: string }
+  let payment: { checkoutId: string; url: string }
   try {
     payment = await deps.createCheckout({
       orderId: order.id,

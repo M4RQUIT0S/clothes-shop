@@ -6,6 +6,7 @@ import { CatalogError } from '@/components/catalog-error'
 import { NavigationLabel } from '@/components/navigation-label'
 import {
   CATEGORIES,
+  PRODUCT_WITH_STOCK,
   discountPct,
   formatPrice,
   isOnSale,
@@ -33,7 +34,7 @@ export default async function Home({
   const [catalog, news] = await Promise.all([
     // el desempate por slug no es cosmético: sin él, dos altas con la misma fecha
     // salen en el orden físico de las filas y cualquier UPDATE reordena la portada
-    supabase.from('products').select('*').order('created_at').order('slug'),
+    supabase.from('products').select(PRODUCT_WITH_STOCK).order('created_at').order('slug'),
     supabase
       .from('news')
       .select('*')

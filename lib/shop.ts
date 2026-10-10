@@ -11,10 +11,13 @@ export type Product = {
   image_url: string
   category: string
   sizes: string[]
-  stock: number
+  /** Stock por talle (tabla product_variants). Sólo llega si la consulta lo pide. */
+  product_variants?: Variant[]
   color: string
   created_at: string
 }
+
+export type Variant = { size: string; stock: number }
 
 /** Entrada de «novedades de la casa» que se asoma en la portada. */
 export type News = {
@@ -99,3 +102,16 @@ export const CATEGORIES = [
   { slug: 'chaquetas', label: 'Camperas' },
   { slug: 'vestidos', label: 'Vestidos' },
 ] as const
+
+/** Una prenda sin talles listados es de talle único y se vende como ''. */
+export const sizesOf = (p: Pick<Product, 'sizes'>) => (p.sizes.length ? p.sizes : [''])
+
+/** Unidades de un talle. Un talle sin fila de stock cuenta como agotado, igual que en el servidor. */
+export const stockFor = (p: Pick<Product, 'product_variants'>, size: string) =>
+  p.product_variants?.find((v) => v.size === size)?.stock ?? 0
+
+export const isSoldOut = (p: Pick<Product, 'sizes' | 'product_variants'>) =>
+  sizesOf(p).every((size) => stockFor(p, size) < 1)
+
+/** Columnas que piden la ficha y el catálogo: la prenda más su stock por talle. */
+export const PRODUCT_WITH_STOCK = '*, product_variants(size, stock)'

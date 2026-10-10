@@ -3,19 +3,28 @@
 import { useState } from 'react'
 import { useCart } from './cart'
 import { SizeGuide } from './size-guide'
-import { unitPrice, type Product } from '@/lib/shop'
+import { sameLine } from '@/lib/cart'
+import { isSoldOut, stockFor, unitPrice, type Product } from '@/lib/shop'
 import { sizeGuideFor } from '@/lib/size-guide'
 
 export function AddToCart({ product }: { product: Product }) {
-  const { add } = useCart()
-  const [size, setSize] = useState(product.sizes.length === 1 ? product.sizes[0] : '')
+  const { add, items } = useCart()
+  // Un único talle con stock se preselecciona; si está agotado, no hay nada que elegir.
+  const [size, setSize] = useState(product.sizes.length === 1 && stockFor(product, product.sizes[0]) > 0 ? product.sizes[0] : '')
   const [message, setMessage] = useState('')
-  const soldOut = product.stock < 1
+  const soldOut = isSoldOut(product)
+  const available = stockFor(product, size)
   const needsSize = product.sizes.length > 0 && !size
   const guide = sizeGuideFor(product)
 
   const onAdd = () => {
     if (soldOut || needsSize) return
+    // El servidor vuelve a comprobar al cotizar; esto sólo evita juntar más de lo que hay.
+    const inCart = items.find((item) => sameLine(item, product.slug, size))?.qty ?? 0
+    if (inCart + 1 > available) {
+      setMessage(`Sólo quedan ${available}${size ? ` en talle ${size}` : ''} y ya están en tu carrito.`)
+      return
+    }
     const result = add({
       slug: product.slug,
       name: product.name,
@@ -34,28 +43,37 @@ export function AddToCart({ product }: { product: Product }) {
         <fieldset>
           <legend className="mb-4 text-[1.05rem]">Elegí tu talle</legend>
           <div className="flex flex-wrap gap-6">
-            {product.sizes.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSize(s)}
-                aria-pressed={s === size}
-                className={`label inline-flex min-h-11 min-w-11 items-center justify-center px-2 transition-colors duration-200 ease-out ${
-                  s === size
-                    ? 'border-b border-ink text-ink'
-                    : 'border-b border-transparent text-muted hover:text-ink'
-                }`}
-              >
-                {s}
-              </button>
-            ))}
+            {product.sizes.map((s) => {
+              const out = stockFor(product, s) < 1
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { setSize(s); setMessage('') }}
+                  disabled={out}
+                  aria-pressed={s === size}
+                  aria-label={out ? `${s}, agotado` : undefined}
+                  className={`label inline-flex min-h-11 min-w-11 items-center justify-center px-2 transition-colors duration-200 ease-out disabled:cursor-not-allowed disabled:text-muted disabled:line-through ${
+                    s === size
+                      ? 'border-b border-ink text-ink'
+                      : 'border-b border-transparent text-muted hover:text-ink'
+                  }`}
+                >
+                  {s}
+                </button>
+              )
+            })}
           </div>
         </fieldset>
       )}
       {guide && <SizeGuide guide={guide} selected={size} />}
 
       <p className="label mt-6 text-muted">
-        {soldOut ? 'Sin stock ahora mismo' : `${product.stock} unidades disponibles`}
+        {soldOut
+          ? 'Sin stock ahora mismo'
+          : needsSize
+            ? 'Elegí un talle para ver cuántas quedan'
+            : `${available} ${available === 1 ? 'disponible' : 'disponibles'}${size ? ` en talle ${size}` : ''}`}
       </p>
 
       <button

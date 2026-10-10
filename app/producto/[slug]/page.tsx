@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AddToCart } from '@/components/add-to-cart'
 import { ProductImage } from '@/components/product-image'
-import { CATEGORIES, discountPct, formatPrice, isOnSale, supabase, unitPrice, type Product } from '@/lib/shop'
+import { CATEGORIES, PRODUCT_WITH_STOCK, discountPct, formatPrice, isOnSale, supabase, unitPrice, type Product } from '@/lib/shop'
 
 export const revalidate = 60
 
@@ -13,7 +13,7 @@ export async function generateStaticParams() {
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const { data, error } = await supabase.from('products').select('*').eq('slug', slug).maybeSingle()
+  const { data, error } = await supabase.from('products').select(PRODUCT_WITH_STOCK).eq('slug', slug).maybeSingle()
 
   if (error) {
     console.error('Error cargando el producto:', error)

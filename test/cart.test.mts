@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { addCartItem, readSavedCart, removeOrderedLines, setCartQuantity, type CartItem } from '../lib/cart.ts'
+import { addCartItem, applyQuotedPrices, readSavedCart, removeOrderedLines, setCartQuantity, type CartItem } from '../lib/cart.ts'
 
 const shirt: CartItem = {
   slug: 'remera-lino', name: 'Remera de lino', size: 'M', qty: 1,
@@ -89,4 +89,14 @@ test('al cerrar un pedido se quitan sólo las líneas que siguen tal cual se pid
 test('si una línea pedida ya no está en el carrito, no pasa nada', () => {
   const result = removeOrderedLines([], [{ slug: shirt.slug, size: shirt.size, qty: 1 }])
   assert.deepEqual(result, { items: [], changed: [] })
+})
+
+test('el carrito adopta los precios cotizados por el servidor y no cambia si ya coinciden', () => {
+  const pants = { ...shirt, slug: 'pantalon', size: '42', price_cents: 5_000_000 }
+  const items = [shirt, pants]
+  const same = applyQuotedPrices(items, [{ slug: shirt.slug, size: shirt.size, unit_price_cents: shirt.price_cents }])
+  assert.equal(same, items, 'misma referencia: no dispara otro render')
+  const updated = applyQuotedPrices(items, [{ slug: pants.slug, size: pants.size, unit_price_cents: 4_000_000 }])
+  assert.deepEqual(updated, [shirt, { ...pants, price_cents: 4_000_000 }])
+  assert.deepEqual(items[1].price_cents, 5_000_000, 'no muta el original')
 })

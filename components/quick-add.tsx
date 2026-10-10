@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState } from 'react'
 import { useCart } from './cart'
-import { unitPrice, type Product } from '@/lib/shop'
+import { isSoldOut, stockFor, unitPrice, type Product } from '@/lib/shop'
 
 export function QuickAdd({ product }: { product: Product }) {
   const { add } = useCart()
@@ -26,7 +26,7 @@ export function QuickAdd({ product }: { product: Product }) {
     trigger.current?.focus()
   }
 
-  if (product.stock < 1) {
+  if (isSoldOut(product)) {
     return <span className="label text-muted">Agotado</span>
   }
 
@@ -51,16 +51,21 @@ export function QuickAdd({ product }: { product: Product }) {
 
       {open && (
         <div id={panelId} role="group" aria-label={`Elegí talle de ${product.name}`} className="pop mt-2 flex flex-wrap gap-1 border border-line bg-paper p-2">
-          {product.sizes.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => onPick(s)}
-              className="label inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-muted transition-colors duration-200 hover:text-ink"
-            >
-              {s}
-            </button>
-          ))}
+          {product.sizes.map((s) => {
+            const out = stockFor(product, s) < 1
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onPick(s)}
+                disabled={out}
+                aria-label={out ? `${s}, agotado` : undefined}
+                className="label inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-muted transition-colors duration-200 hover:text-ink disabled:cursor-not-allowed disabled:line-through disabled:hover:text-muted"
+              >
+                {s}
+              </button>
+            )
+          })}
         </div>
       )}
       <p role="status" aria-live="polite" aria-atomic="true" className="meta mt-1 text-ink">{message}</p>

@@ -2,7 +2,9 @@
 
 import { createContext, useContext, useSyncExternalStore } from 'react'
 import { createCartStore } from '@/lib/cart-store'
-import { addCartItem, sameLine, setCartQuantity, type CartItem } from '@/lib/cart'
+import {
+  addCartItem, applyQuotedPrices, removeOrderedLines, sameLine, setCartQuantity, type CartItem, type OrderedLine,
+} from '@/lib/cart'
 
 export type { CartItem } from '@/lib/cart'
 
@@ -12,6 +14,10 @@ type CartContext = {
   setQty: (slug: string, size: string, qty: number) => void
   remove: (slug: string, size: string) => void
   clear: () => void
+  /** Adopta los precios cotizados por el servidor. */
+  syncPrices: (lines: { slug: string; size: string; unit_price_cents: number }[]) => void
+  /** Quita lo pedido tal cual; devuelve las líneas pedidas que cambiaron mientras tanto. */
+  consumeOrder: (lines: OrderedLine[]) => CartItem[]
   count: number
   total: number
   warning?: string
@@ -62,6 +68,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setQty,
     remove,
     clear: () => update(() => []),
+    syncPrices: (lines) => {
+      const prev = getSnapshot().items
+      const next = applyQuotedPrices(prev, lines)
+      if (next !== prev) guardar(next)
+    },
+    consumeOrder: (lines) => {
+      const { items: rest, changed } = removeOrderedLines(getSnapshot().items, lines)
+      guardar(rest)
+      return changed
+    },
     count: items.reduce((n, i) => n + i.qty, 0),
     total: items.reduce((n, i) => n + i.qty * i.price_cents, 0),
   }

@@ -44,7 +44,7 @@ alter table orders
   -- contenido se rechaza en vez de devolver un pedido ajeno a lo enviado.
   add column request_hash text,
   add column subtotal_cents int check (subtotal_cents >= 0),
-  add column mp_preference_id text,
+  add column mp_order_id text,
   add column payment_url text,
   add column payment_id text,
   add column payment_status text,

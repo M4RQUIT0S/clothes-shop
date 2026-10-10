@@ -3,6 +3,8 @@
 // competir; la idempotencia se prueba repitiendo llamadas en secuencia.
 import assert from 'node:assert/strict'
 import { after, before, beforeEach, test } from 'node:test'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import type { PGlite } from '@electric-sql/pglite'
 import { applyMigration, migratedDb, migrationFiles } from './support/db.mts'
 
@@ -196,4 +198,21 @@ test('las migraciones se aplican en orden de fecha', () => {
   const files = migrationFiles()
   assert.deepEqual(files, [...files].sort())
   assert.equal(files.at(-1), CHECKOUT)
+})
+
+test('el seed local se aplica sobre las migraciones y deja talles con y sin stock', async () => {
+  const local = await migratedDb()
+  try {
+    await local.exec(readFileSync(join(import.meta.dirname, '..', 'supabase', 'seed.sql'), 'utf8'))
+    const { rows } = await local.query<{ variants: number; sold_out: number; products_without: number }>(`
+      select (select count(*)::int from product_variants) as variants,
+             (select count(*)::int from product_variants where stock = 0) as sold_out,
+             (select count(*)::int from products p where not exists (
+                select 1 from product_variants v where v.product_id = p.id)) as products_without`)
+    assert.equal(rows[0].products_without, 0)
+    assert.ok(rows[0].variants > 40)
+    assert.equal(rows[0].sold_out, 2)
+  } finally {
+    await local.close()
+  }
 })
