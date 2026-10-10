@@ -73,13 +73,13 @@ function statusCopy(order: ReceiptOrder, emailConfigured: boolean) {
     case 'payment_failed':
       return {
         title: 'El pago no se completó',
-        body: 'Mercado Pago no aprobó el pago. Tu pedido sigue reservado a tu nombre: podés intentarlo de nuevo con otro medio.',
+        body: 'Mercado Pago no aprobó el pago o venció el plazo para pagarlo. No se cobró nada y las prendas no quedan apartadas: para comprarlas, volvé al carrito y confirmá de nuevo.',
       }
     case 'awaiting_payment':
       return order.payment_status
         ? {
           title: 'Pago pendiente',
-          body: 'Mercado Pago todavía no acreditó el pago (por ejemplo, si elegiste pagar en efectivo). Volvé a abrir este enlace más tarde para ver el estado.',
+          body: 'Mercado Pago todavía no acreditó el pago (por ejemplo, si elegiste pagar en efectivo). Volvé a abrir este enlace más tarde para ver el estado. Las prendas siguen en tu carrito hasta que se acredite: no hace falta volver a comprarlas.',
         }
         : {
           title: 'Esperando el pago',
@@ -92,10 +92,12 @@ function statusCopy(order: ReceiptOrder, emailConfigured: boolean) {
 
 function Receipt({ order }: { order: ReceiptOrder }) {
   const copy = statusCopy(order, Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM))
-  const canPay = (order.status === 'awaiting_payment' || order.status === 'payment_failed') && order.payment_url
-  // El carrito se vacía de lo pedido cuando el pedido quedó en firme: pagado o con un pago en curso.
+  // Sólo se ofrece volver a Mercado Pago mientras la orden sigue abierta y sin intentos.
+  // Un pago rechazado o una orden vencida no se reabren: se vuelve a confirmar desde el carrito.
+  const canPay = order.status === 'awaiting_payment' && !order.payment_status && order.payment_url
+  // El carrito se vacía de lo pedido recién cuando hay dinero: un pago en efectivo pendiente
+  // puede vencer, y entonces el comprador perdería las prendas sin haber comprado nada.
   const placed = order.status === 'paid' || order.status === 'needs_review'
-    || (order.status === 'awaiting_payment' && Boolean(order.payment_status))
 
   return (
     <section className="mx-auto max-w-2xl px-6 py-20">
@@ -129,8 +131,13 @@ function Receipt({ order }: { order: ReceiptOrder }) {
       <div className="mt-10 flex flex-wrap gap-x-8 gap-y-2">
         {canPay && (
           <a href={order.payment_url!} className="label inline-flex min-h-11 items-center border-b border-ink">
-            {order.status === 'payment_failed' ? 'Intentar el pago de nuevo' : 'Ir a pagar'}
+            Ir a pagar
           </a>
+        )}
+        {order.status === 'payment_failed' && (
+          <Link href="/carrito" className="label inline-flex min-h-11 items-center border-b border-ink">
+            Volver al carrito
+          </Link>
         )}
         <Link href="/#catalogo" className="label inline-flex min-h-11 min-w-11 items-center border-b border-ink">
           Seguir comprando

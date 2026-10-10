@@ -264,11 +264,20 @@ export default function CartPage() {
           />
         </fieldset>
 
-        {notice && (
-          <p role={notice.tone === 'error' ? 'alert' : 'status'} className={`mt-6 text-[1rem] italic ${notice.tone === 'error' ? 'text-red-800' : 'text-ink'}`}>
-            {notice.text}
-          </p>
-        )}
+        {/* Regiones vivas siempre montadas: un lector de pantalla anuncia de forma fiable
+            el cambio de texto, no un elemento que aparece ya lleno. */}
+        <p role="alert" aria-atomic="true" className={notice?.tone === 'error' ? 'mt-6 text-[1rem] italic text-red-800' : 'sr-only'}>
+          {notice?.tone === 'error' ? notice.text : ''}
+        </p>
+        <p role="status" aria-atomic="true" className={notice?.tone === 'info' ? 'mt-6 text-[1rem] italic text-ink' : 'sr-only'}>
+          {notice?.tone === 'info' ? notice.text : ''}
+          {/* Los problemas por línea se ven junto a cada prenda; aquí sólo se anuncian. */}
+          {problems.length > 0 && (
+            <span className="sr-only">
+              {' '}{problems.length === 1 ? 'Una prenda necesita cambios' : `${problems.length} prendas necesitan cambios`} antes de pagar: revisá el carrito.
+            </span>
+          )}
+        </p>
 
         {phase === 'locked' && attempt ? (
           <button
