@@ -10,7 +10,7 @@ Tienda con Next.js 16 (App Router), Tailwind CSS 4 y Supabase. Página publicada
 - Checkout que **recalcula los precios en el servidor** desde la base de datos: el cliente
   sólo dice qué y cuánto, nunca cuánto cuesta. Valida talles y stock, exige aceptar cambios de importe y conserva el pedido al reintentar.
 - Mercado Pago Checkout Pro mediante la API de Órdenes, webhook firmado, stock por talle descontado al confirmar, recibo privado y correo opcional por Resend.
-- Borradores de privacidad y cookies con datos Pendiente. Aviso Aceptar cookies con elección local vigente durante 180 días y restablecimiento en `/cookies`.
+- Borradores de privacidad, cookies y términos y condiciones con datos Pendiente, accesibles desde el pie y el checkout. Aviso Aceptar cookies con elección local vigente durante 180 días y restablecimiento en `/cookies`.
 
 ## Puesta en marcha
 

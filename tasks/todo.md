@@ -1,11 +1,12 @@
 # Correcciones de la auditoría UX
 
-## Cierre actualizado — 10 de octubre de 2026
+## Cierre actualizado — 11 de octubre de 2026
 
 - [x] Checkout idempotente, cotización/aceptación de cambios de importe, recuperación de fallo de transporte y recibo privado implementados y probados; reemplazan la demo descrita en el registro inicial.
 - [x] Pedidos persistidos en servidor y stock por talle con confirmación atómica.
 - [x] Carrito local de visitantes, cuentas con RLS, fusión sin duplicar, sincronización/reintentos y aislamiento al salir o cambiar de cuenta.
 - [x] Políticas publicadas con campos Pendiente; aviso Aceptar cookies y restablecimiento.
+- [x] Términos y condiciones publicados en `/terminos`, con campos Pendiente y enlaces desde el pie y el checkout; verificados en móvil y escritorio.
 - [x] SQL completo aprobado y aplicado en producción, ocho pedidos preservados; despliegue y navegador público verificados.
 - [x] Revisión directa de corrección, concurrencia, seguridad, límites de permisos, dependencias y documentación; no se delegó a subagentes.
 - [x] 113 pruebas unitarias/SQL y seis de integración local; lint, tipos, build remoto y navegador de dos cuentas.
