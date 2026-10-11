@@ -45,8 +45,9 @@ export function SiteFooter() {
           <Item href="/cuenta">Mi cuenta</Item>
           <Item href="/privacidad">Política de privacidad</Item>
           <Item href="/cookies">Política de cookies</Item>
+          <Item href="/terminos">Términos y condiciones</Item>
           <li className="meta text-muted">Envío gratis desde {formatPrice(SHIPPING_FREE_FROM)}</li>
-          <li className="meta text-muted">Devoluciones en 30 días</li>
+          <Item href="/terminos#cambios-y-devoluciones">Devoluciones en 30 días</Item>
         </Column>
 
       </div>

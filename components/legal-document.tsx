@@ -1,12 +1,16 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-export function LegalDocument({ title, children }: { title: string; children: ReactNode }) {
+export function LegalDocument({ title, children, updatedAt = '10 de octubre de 2026' }: {
+  title: string
+  children: ReactNode
+  updatedAt?: string
+}) {
   return (
     <article className="mx-auto max-w-4xl px-6 pb-8 pt-36 md:px-10">
       <p className="label text-muted">Información de la tienda</p>
       <h1 className="mt-4 text-4xl font-light leading-tight md:text-5xl">{title}</h1>
-      <p className="meta mt-5 text-muted">Última actualización: 10 de octubre de 2026</p>
+      <p className="meta mt-5 text-muted">Última actualización: {updatedAt}</p>
       <div className="mt-8 border border-line p-5 font-sans text-sm leading-relaxed">
         <p className="font-semibold">Borrador con datos pendientes</p>
         <p className="mt-2">
@@ -16,9 +20,10 @@ export function LegalDocument({ title, children }: { title: string; children: Re
         <p className="mt-2">Entrada en vigor: <strong>Pendiente</strong>.</p>
         <p className="mt-2">Ámbito previsto: Argentina, <strong>pendiente de confirmación</strong>.</p>
       </div>
-      <nav aria-label="Políticas de la tienda" className="mt-5 flex flex-wrap gap-x-6 font-sans text-sm">
+      <nav aria-label="Información legal de la tienda" className="mt-5 flex flex-wrap gap-x-6 font-sans text-sm">
         <Link href="/privacidad" className="inline-flex min-h-11 items-center underline underline-offset-4">Privacidad</Link>
         <Link href="/cookies" className="inline-flex min-h-11 items-center underline underline-offset-4">Cookies</Link>
+        <Link href="/terminos" className="inline-flex min-h-11 items-center underline underline-offset-4">Términos y condiciones</Link>
       </nav>
       <div className="legal-copy mt-8 font-sans text-base leading-7">
         {children}

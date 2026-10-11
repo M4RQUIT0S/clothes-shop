@@ -275,9 +275,11 @@ export default function CartPage() {
         <p className="mt-6 font-sans text-sm leading-relaxed text-muted">
           Usamos tus datos para gestionar el pedido. Podés leer la{' '}
           <Link href="/privacidad" className="inline-flex min-h-11 items-center text-ink underline underline-offset-4">política de privacidad</Link>
-          {' '}y la{' '}
-          <Link href="/cookies" className="inline-flex min-h-11 items-center text-ink underline underline-offset-4">política de cookies</Link>.
-          {' '}Ambas son borradores con datos pendientes de completar.
+          {', la '}
+          <Link href="/cookies" className="inline-flex min-h-11 items-center text-ink underline underline-offset-4">política de cookies</Link>
+          {' '}y los{' '}
+          <Link href="/terminos" className="inline-flex min-h-11 items-center text-ink underline underline-offset-4">términos y condiciones de compra</Link>.
+          {' '}Estos textos son borradores con datos pendientes de completar.
         </p>
 
         {/* Regiones vivas siempre montadas: un lector de pantalla anuncia de forma fiable

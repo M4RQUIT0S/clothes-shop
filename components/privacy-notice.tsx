@@ -10,7 +10,7 @@ export function PrivacyNotice() {
   const [dismissed, setDismissed] = useState(false)
   const accepted = useCookieAcceptance()
 
-  if (accepted || dismissed || pathname === '/privacidad' || pathname === '/cookies') return null
+  if (accepted || dismissed || pathname === '/privacidad' || pathname === '/cookies' || pathname === '/terminos') return null
 
   return (
     <aside aria-labelledby="privacy-notice-title" className="fixed inset-x-0 bottom-0 z-30 border border-line bg-paper p-5 text-ink shadow-lg md:inset-x-auto md:bottom-6 md:right-6 md:max-w-md">
