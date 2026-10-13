@@ -7,6 +7,14 @@ export type CartOperation = {
   createdAt: number
 }
 
+/** La RPC rechazó la operación antes de guardarla; reintentar no puede corregirla. */
+export class CartOperationRejected extends Error {
+  constructor() {
+    super('No pudimos aplicar uno de los cambios porque el carrito cambió o alcanzó su límite. Revisá las prendas y cantidades.')
+    this.name = 'CartOperationRejected'
+  }
+}
+
 /** Sólo referencias y cantidades viajan al servidor; los importes nunca se confían al cliente. */
 export const cartLines = (items: OrderedLine[]): OrderedLine[] => items.map(({ slug, size, qty }) => ({ slug, size, qty }))
 

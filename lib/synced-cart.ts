@@ -1,5 +1,5 @@
-import { readSavedCart, type CartItem, type OrderedLine } from './cart.ts'
-import { applyCartOperation, cartLines, parseOperation, presentCart, type CartOperation } from './account-cart.ts'
+import { applyQuotedPrices, readSavedCart, type CartItem, type OrderedLine } from './cart.ts'
+import { applyCartOperation, CartOperationRejected, cartLines, parseOperation, presentCart, type CartOperation } from './account-cart.ts'
 
 export const GUEST_CART_KEY = 'clothes-shop-cart'
 export const ACCOUNT_CACHE_PREFIX = 'clothes-shop-account-cart:'
@@ -27,7 +27,12 @@ export function createSyncedCart({ storage, readRemote, mutateRemote }: Dependen
   let guestMemory: CartItem[] | null = null
   let lastCreatedAt = 0
   let mergeWarning: string | undefined
+  let operationWarning: string | undefined
+  let includedOperationIds = new Set<string>()
+  let lastCacheRaw: string | null = null
+  let checkpointRevision = 0
   const memoryOps = new Map<string, CartOperation>()
+  const durableOps = new Set<string>()
   const acknowledged = new Set<string>()
   const flights = new Map<number, Promise<void>>()
   const listeners = new Set<() => void>()
@@ -40,10 +45,38 @@ export function createSyncedCart({ storage, readRemote, mutateRemote }: Dependen
     catalog = [...new Map([...catalog, ...items].map((item) => [item.slug, item])).values()].slice(-100)
   }
   const journalKey = (owner: string, id: string) => `${ACCOUNT_OP_PREFIX}${owner}:${id}`
+  function readCheckpoint(owner: string) {
+    try {
+      const raw = storage.read(`${ACCOUNT_CACHE_PREFIX}${owner}`)
+      if (!raw || raw === lastCacheRaw) return
+      const cache = JSON.parse(raw)
+      const items = readSavedCart(JSON.stringify(cache.items ?? [])).items
+      const details = readSavedCart(JSON.stringify(cache.catalog ?? [])).items
+      const included = new Set<string>(Array.isArray(cache.includedOperationIds)
+        ? cache.includedOperationIds.filter((id: unknown): id is string => typeof id === 'string') : [])
+      base = items; addDetails(details); includedOperationIds = included
+      lastCacheRaw = raw
+      checkpointRevision++
+    } catch { /* Conservar la copia en memoria si la caché no está disponible. */ }
+  }
   function operations(owner: string) {
+    readCheckpoint(owner)
     const all = new Map(memoryOps)
     try {
-      for (const [key, raw] of storage.entries(`${ACCOUNT_OP_PREFIX}${owner}:`)) {
+      const prefix = `${ACCOUNT_OP_PREFIX}${owner}:`
+      const entries = storage.entries(prefix)
+      const storedKeys = new Set(entries.map(([key]) => key))
+      for (const id of includedOperationIds) {
+        const key = journalKey(owner, id)
+        if (!storedKeys.has(key) && !memoryOps.has(key)) includedOperationIds.delete(id)
+      }
+      // Otra pestaña pudo confirmar y retirar una operación que originamos aquí.
+      for (const key of durableOps) {
+        if (key.startsWith(prefix) && !storedKeys.has(key)) {
+          memoryOps.delete(key); durableOps.delete(key); all.delete(key)
+        }
+      }
+      for (const [key, raw] of entries) {
         const op = parseOperation(raw)
         if (op && key === journalKey(owner, op.id)) all.set(key, op)
       }
@@ -54,20 +87,23 @@ export function createSyncedCart({ storage, readRemote, mutateRemote }: Dependen
   function remember(owner: string) {
     try {
       const key = `${ACCOUNT_CACHE_PREFIX}${owner}`
-      const raw = JSON.stringify({ items: base, catalog })
+      const raw = JSON.stringify({ items: base, catalog, includedOperationIds: [...includedOperationIds] })
       if (storage.read(key) !== raw) storage.write(key, raw)
+      lastCacheRaw = raw
+      return true
     }
-    catch { /* La sincronización aún funciona; la caché no es el registro principal. */ }
+    catch { return false }
   }
   function visible(owner: string, sync: CartSnapshot['sync'], warning?: string) {
     const pending = operations(owner)
-    const lines = pending.reduce((items, op) => applyCartOperation(items, op), cartLines(base))
-    publish({ items: presentCart(lines, catalog), owner, loading: false, sync, warning: warning ?? mergeWarning })
+    const lines = pending.filter((op) => !includedOperationIds.has(op.id))
+      .reduce((items, op) => applyCartOperation(items, op), cartLines(base))
+    publish({ items: presentCart(lines, catalog), owner, loading: false, sync, warning: warning ?? operationWarning ?? mergeWarning })
   }
   function readGuest() {
     if (guestMemory) return { items: guestMemory }
     try { return readSavedCart(storage.read(GUEST_CART_KEY)) }
-    catch { return { items: [], warning: 'No pudimos leer el carrito guardado en este navegador.' } }
+    catch { return { items: snapshot.owner ? [] : snapshot.items, warning: 'No pudimos leer el carrito guardado en este navegador.' } }
   }
   function saveGuest(items: CartItem[]) {
     guestMemory = items
@@ -79,33 +115,56 @@ export function createSyncedCart({ storage, readRemote, mutateRemote }: Dependen
     const op: CartOperation = { id: crypto.randomUUID(), kind, lines: cartLines(lines), createdAt: lastCreatedAt }
     const key = journalKey(owner, op.id)
     memoryOps.set(key, op)
-    try { storage.write(key, JSON.stringify(op)); return true }
+    try { storage.write(key, JSON.stringify(op)); durableOps.add(key); return true }
     catch { return false }
   }
 
+  function forget(owner: string, op: CartOperation) {
+    const key = journalKey(owner, op.id)
+    acknowledged.add(key); memoryOps.delete(key); durableOps.delete(key)
+    try { storage.remove(key) } catch { /* La caché reconoce los UUID incluidos aunque quede el diario. */ }
+  }
+  function finishMerge(result: CartItem[]) {
+    const rest = readGuest().items.filter((item) => !result.some((line) => line.slug === item.slug && line.size === item.size && line.qty >= item.qty))
+    saveGuest(rest)
+    if (rest.length) mergeWarning = 'El carrito de tu cuenta alcanzó su límite. Conservamos las prendas restantes en el carrito de visitante.'
+  }
   async function flush(owner: string, version: number) {
+    const completed = new Map<string, CartOperation>()
     try {
-      const remote = await readRemote(owner)
-      if (version !== generation) return
-      base = remote; addDetails(remote)
-      visible(owner, 'syncing')
-      for (const op of operations(owner)) {
-        const result = await mutateRemote(owner, op)
-        if (version !== generation) return
-        const key = journalKey(owner, op.id)
-        acknowledged.add(key); memoryOps.delete(key)
-        try { storage.remove(key) } catch { /* El reintento del servidor es idempotente. */ }
-        base = result; addDetails(result)
-        if (op.kind === 'merge') {
-          const rest = readGuest().items.filter((item) => !result.some((line) => line.slug === item.slug && line.size === item.size && line.qty >= item.qty))
-          saveGuest(rest)
-          if (rest.length) mergeWarning = 'El carrito de tu cuenta alcanzó su límite. Conservamos las prendas restantes en el carrito de visitante.'
+      while (version === generation) {
+        for (const op of operations(owner).filter((op) => !completed.has(op.id))) {
+          try {
+            const result = await mutateRemote(owner, op)
+            if (version !== generation) return
+            completed.set(op.id, op)
+            if (op.kind === 'merge') finishMerge(result)
+          } catch (error) {
+            if (version !== generation) return
+            if (!(error instanceof CartOperationRejected)) throw error
+            forget(owner, op)
+            operationWarning = error.message
+          }
         }
-        remember(owner)
-        visible(owner, 'syncing')
+        const revision = checkpointRevision
+        const remote = await readRemote(owner)
+        if (version !== generation) return
+        const pending = operations(owner)
+        // Otra pestaña pudo confirmar cambios después de que empezó esta lectura.
+        if (revision !== checkpointRevision || pending.some((op) => !completed.has(op.id))) continue
+        // Ningún resultado intermedio se superpone al diario: puede contener operaciones
+        // cuyo resultado se perdió o que otra pestaña ya aplicó. Se publica todo junto.
+        base = remote; addDetails(remote)
+        includedOperationIds = new Set([...includedOperationIds, ...completed.keys()])
+        // El par base/UUID se guarda antes de limpiar; una recarga en medio no suma dos veces.
+        if (!remember(owner)) {
+          visible(owner, 'error', 'Tu carrito llegó al servidor, pero no pudimos guardar la copia local. Reintentaremos sin duplicar tus cambios.')
+          return
+        }
+        completed.forEach((op) => forget(owner, op))
+        visible(owner, 'saved')
+        return
       }
-      remember(owner)
-      visible(owner, operations(owner).length ? 'syncing' : 'saved')
     } catch {
       if (version === generation) visible(owner, 'error', 'No pudimos sincronizar tu carrito. Conservamos los cambios aquí y reintentaremos al recuperar la conexión.')
     }
@@ -119,7 +178,7 @@ export function createSyncedCart({ storage, readRemote, mutateRemote }: Dependen
     }
     if (flights.has(generation)) return flights.get(generation)!
     const version = generation
-    visible(owner, 'syncing')
+    publish({ ...snapshot, sync: 'syncing' })
     const flight = flush(owner, version).finally(() => {
       flights.delete(version)
       // Se pudo añadir una operación mientras la anterior estaba en vuelo.
@@ -133,16 +192,16 @@ export function createSyncedCart({ storage, readRemote, mutateRemote }: Dependen
     generation++
     base = []; catalog = []
     mergeWarning = undefined
+    operationWarning = undefined
+    includedOperationIds = new Set()
+    lastCacheRaw = null
+    checkpointRevision = 0
     if (!owner) {
       const guest = readGuest()
       publish({ ...guest, owner: null, loading: false, sync: 'local' })
       return
     }
-    try {
-      const cache = JSON.parse(storage.read(`${ACCOUNT_CACHE_PREFIX}${owner}`) ?? '{}')
-      base = readSavedCart(JSON.stringify(cache.items ?? [])).items
-      catalog = readSavedCart(JSON.stringify(cache.catalog ?? [])).items
-    } catch { /* Primera entrada o caché corrupta: recuperar desde servidor. */ }
+    readCheckpoint(owner)
     const guest = readGuest()
     if (guest.items.length) {
       addDetails(guest.items)
@@ -152,21 +211,29 @@ export function createSyncedCart({ storage, readRemote, mutateRemote }: Dependen
     await refresh()
   }
   function change(kind: CartOperation['kind'], lines: OrderedLine[], details: CartItem[] = []) {
-    addDetails(details)
     if (!snapshot.owner) {
-      const items = presentCart(applyCartOperation(snapshot.items, { id: '', kind, lines, createdAt: 0 }), [...snapshot.items, ...details])
+      const current = readGuest().items
+      const items = presentCart(applyCartOperation(current, { id: '', kind, lines, createdAt: 0 }), [...current, ...details])
       const warning = saveGuest(items)
       publish({ items, owner: null, loading: false, sync: 'local', warning })
       return
     }
     const owner = snapshot.owner
+    operations(owner)
+    addDetails(details)
     const durable = enqueue(owner, kind, lines)
     remember(owner)
     visible(owner, 'syncing', durable ? undefined : 'El navegador bloqueó el guardado local. Conservamos tus cambios en memoria mientras se sincronizan.')
     void refresh()
   }
   function setPrices(items: CartItem[]) {
-    if (!snapshot.owner) { const warning = saveGuest(items); publish({ ...snapshot, items, warning }); return }
+    if (!snapshot.owner) {
+      const current = readGuest().items
+      const updated = applyQuotedPrices(current, items.map((item) => ({ ...item, unit_price_cents: item.price_cents })))
+      const warning = saveGuest(updated)
+      publish({ ...snapshot, items: updated, warning })
+      return
+    }
     catalog = items
     publish({ ...snapshot, items })
   }

@@ -2,7 +2,7 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { browserClient } from './supabase/browser'
-import { presentCart, type CartOperation } from './account-cart'
+import { CartOperationRejected, presentCart, type CartOperation } from './account-cart'
 import type { CartItem, OrderedLine } from './cart'
 
 /** Captura el token de ESTA cuenta: un cambio de sesión no redirige una petición en vuelo. */
@@ -29,6 +29,8 @@ export async function readAccountCart(owner: string) {
 export async function mutateAccountCart(owner: string, op: CartOperation) {
   const db = await accountClient(owner)
   const { data, error } = await db.rpc('mutate_account_cart', { p_id: op.id, p_kind: op.kind, p_lines: op.lines })
+  if (error?.code === '22023') throw new CartOperationRejected()
   if (error) throw error
+  // Un fallo leyendo el catálogo ocurre después del commit: conserva el UUID para reintentar.
   return enrich(db, data as OrderedLine[])
 }

@@ -14,6 +14,10 @@ Cada modificación tiene UUID y se aplica con una RPC atómica. El bloqueo por u
 
 Una caché y un diario local separados por usuario permiten trabajar durante fallos de red y recargar sin perder operaciones ya guardadas. La sincronización se reintenta al recuperar conexión, volver a la pestaña, pulsar Reintentar y cada 15 segundos mientras está visible. Es sincronización eventual, sin suscripción Realtime. Cerrar sesión vuelve al carrito visitante; no importa productos de otra cuenta ni borra el carrito del servidor. La caché de la cuenta permanece en el dispositivo, como explica la política.
 
+Desde la corrección del 12 de octubre, los resultados remotos se publican después de resolver todas las operaciones pendientes. Hasta entonces se conserva la base local y se superpone el diario una sola vez. Antes de retirar las operaciones se guarda, en una única escritura de caché, el carrito confirmado junto con sus UUID incluidos. Si falla guardar o borrar, los reintentos y recargas conservan esa relación y no vuelven a sumar cantidades. Cada pestaña incorpora la caché compartida antes de modificarla; si cambia mientras una lectura remota está en vuelo, se repite la lectura para evitar reemplazarla con un resultado anterior.
+
+Los rechazos definitivos de validación de la RPC (`22023`, incluido el límite de líneas) se retiran del diario con un aviso y permiten continuar con las operaciones siguientes. Los fallos de red o de consulta del catálogo posteriores al commit conservan el UUID para reintentar. El visitante lee el carrito persistido antes de cada cambio y las cotizaciones sólo actualizan precios de las líneas presentes, preservando las prendas agregadas desde otra pestaña.
+
 ## Límites de confianza
 
 `account_carts` sólo admite lectura propia mediante RLS. No hay escrituras directas de clientes. `mutate_account_cart` verifica `auth.uid()`, valida referencias y cantidades y delega en una función con privilegios elevados dentro del esquema privado. El cliente no elige el propietario ni envía importes para cobrar. El checkout vuelve a cotizar catálogo, talles, stock y precios en el servidor.
@@ -40,6 +44,10 @@ Supabase Auth usa Site URL `https://clothes-shop-wheat.vercel.app` y el retorno 
 Definir retención de cuentas inactivas y recibos de operaciones antes del lanzamiento. No borrar recibos de idempotencia sin coordinar el horizonte de reintentos de los clientes. Las políticas web y sus Markdown dejan estos plazos como **Pendiente**.
 
 ## Verificación
+
+Corrección del 12 de octubre de 2026: 126 pruebas unitarias/SQL aprobadas, incluidas 13 regresiones nuevas de respuestas perdidas, rechazo de capacidad con las migraciones reales en PGlite, pestañas con caché anterior, cotizaciones, lecturas en vuelo y fallos al guardar/eliminar. Cobertura de `account-cart.ts` y `synced-cart.ts`: 99,34 % de líneas, 91,30 % de ramas y 98,04 % de funciones. Chrome aislado comprobó el módulo real con localStorage compartido entre dos pestañas y respuestas remotas simuladas, sin errores de ejecución. ESLint, TypeScript y build optimizado con configuración de Supabase local aprobados. Esta verificación no utiliza cuentas ni datos de producción.
+
+Verificación original de publicación:
 
 - 111 pruebas unitarias/SQL pasan; cubren RLS, entradas malformadas, fusión, capacidad, reintentos tras respuesta perdida, recarga sin conexión, cambio de cuenta y permanencia de pedidos.
 - Cobertura del núcleo nuevo `account-cart.ts` y `synced-cart.ts`: 96,52% de líneas, 84,62% de ramas, 87,18% de funciones.
