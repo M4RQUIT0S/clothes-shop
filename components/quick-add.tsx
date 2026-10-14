@@ -2,16 +2,26 @@
 
 import { useId, useRef, useState } from 'react'
 import { useCart } from './cart'
+import { sameLine } from '@/lib/cart'
 import { isSoldOut, stockFor, unitPrice, type Product } from '@/lib/shop'
 
 export function QuickAdd({ product }: { product: Product }) {
-  const { add } = useCart()
+  const { add, items } = useCart()
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState('')
   const panelId = useId()
   const trigger = useRef<HTMLButtonElement>(null)
 
   const onPick = (size: string) => {
+    // Igual que en la ficha: no juntar en el carrito más de lo que queda de ese talle.
+    const inCart = items.find((item) => sameLine(item, product.slug, size))?.qty ?? 0
+    const available = stockFor(product, size)
+    if (inCart + 1 > available) {
+      setOpen(false)
+      setMessage(`Sólo quedan ${available}${size ? ` en talle ${size}` : ''} y ya están en tu carrito.`)
+      trigger.current?.focus()
+      return
+    }
     const result = add({
       slug: product.slug,
       name: product.name,

@@ -66,6 +66,12 @@ function statusCopy(order: ReceiptOrder, emailConfigured: boolean) {
             : 'Preparamos el pedido. Guardá este enlace: es tu comprobante.',
       }
     case 'needs_review':
+      if (order.payment_status === 'refunded' || order.payment_status === 'charged_back') {
+        return {
+          title: 'Pago devuelto',
+          body: 'El pago de este pedido se devolvió o se desconoció, así que no lo vamos a preparar. Si no reconocés este movimiento, escribinos.',
+        }
+      }
       return {
         title: 'Estamos revisando tu pedido',
         body: 'Recibimos el pago, pero necesitamos revisar algo antes de prepararlo (por ejemplo, que un talle se agotó mientras pagabas). Te escribimos a la brevedad; si no podemos enviarlo, te devolvemos el dinero.',

@@ -30,8 +30,9 @@ export function ReceiptCart({ orderId, placed }: { orderId: string; placed: bool
   if (!kept.length) return null
   return (
     <p role="status" className="mt-6 text-[1rem] italic text-ink">
-      Dejamos en tu carrito {kept.map((item) => `${item.name}${item.size ? ` (talle ${item.size})` : ''}`).join(', ')}:
-      {' '}cambió mientras confirmabas y no entró tal cual en este pedido.
+      Este pedido ya incluye lo que confirmaste. Dejamos en tu carrito{' '}
+      {kept.map((item) => `${item.name}${item.size ? ` (talle ${item.size})` : ''}`).join(', ')}{' '}
+      porque cambió mientras confirmabas: revisá las cantidades antes de volver a comprarlo.
     </p>
   )
 }

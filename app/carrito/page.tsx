@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { unstable_rethrow } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useCart } from '@/components/cart'
 import { ProductImage } from '@/components/product-image'
 import { POSTAL_CODE_PATTERN, PROVINCES } from '@/lib/argentina'
 import { MAX_ITEM_QUANTITY, sameLine } from '@/lib/cart'
 import { ADDRESS_MAX_LENGTH, EMAIL_MAX_LENGTH, NAME_MAX_LENGTH, POSTAL_CODE_MAX_LENGTH } from '@/lib/checkout-fields'
 import type { LineProblem } from '@/lib/checkout/quote'
-import { PENDING_ORDER_KEY, serializePendingOrder } from '@/lib/pending-order'
+import { PENDING_ORDER_KEY, parsePendingOrder, serializePendingOrder } from '@/lib/pending-order'
 import { formatPrice, shippingFor } from '@/lib/shop'
 import { placeOrderAction, type PlaceOrderInput, type PlaceOrderResult, type QuoteResult } from './actions'
 import { useQuote } from './use-quote'
@@ -36,6 +36,29 @@ export default function CartPage() {
   const [notice, setNotice] = useState<Notice | null>(null)
   const [attempt, setAttempt] = useState<PlaceOrderInput | null>(null)
   const [, startTransition] = useTransition()
+  const [pendingReceipt, setPendingReceipt] = useState<string | null>(null)
+
+  // Al volver con «Atrás» desde Mercado Pago, el navegador puede restaurar esta página
+  // tal como quedó (bfcache), con todo bloqueado en «Yendo a Mercado Pago…». Se libera;
+  // el intento conserva su clave, así que confirmar de nuevo devuelve el mismo pedido.
+  useEffect(() => {
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setPhase((current) => (current === 'redirecting' ? 'idle' : current))
+    }
+    window.addEventListener('pageshow', onShow)
+    return () => window.removeEventListener('pageshow', onShow)
+  }, [])
+
+  // Un pedido que salió hacia Mercado Pago desde este navegador: si el comprador no volvió
+  // por la redirección, este enlace es su camino de vuelta al recibo.
+  useEffect(() => {
+    if (!ready) return
+    let raw: string | null = null
+    try { raw = localStorage.getItem(PENDING_ORDER_KEY) } catch { return }
+    const pending = parsePendingOrder(raw)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPendingReceipt(pending && (pending.ownerId ?? null) === ownerId ? pending.receiptPath : null)
+  }, [ready, ownerId])
 
   const onQuoted = (result: QuoteResult) => { if (result.ok) syncPrices(result.quote.lines) }
   const quote = useQuote(items, onQuoted)
@@ -48,6 +71,7 @@ export default function CartPage() {
   const shipping = quoted ? quoted.quote.shipping_cents : shippingFor(localTotal)
   const total = quoted ? quoted.quote.total_cents : localTotal + shipping
   const canPay = Boolean(quoted) && problems.length === 0 && !busy
+  const quoteFailed = quote.result?.ok === false
 
   const handle = (result: PlaceOrderResult, payload: PlaceOrderInput) => {
     if (result.ok) {
@@ -130,6 +154,7 @@ export default function CartPage() {
       <section className="mx-auto max-w-lg px-6 py-32 text-center">
         <h1 className="text-[2.4rem] font-light">Tu carrito está vacío</h1>
         {warning && <p role="status" className="mt-4 text-muted">{warning}</p>}
+        {pendingReceipt && <PendingOrderLink href={pendingReceipt} />}
         <p className="mt-4 text-muted">Trece prendas esperando. Empezá por donde quieras.</p>
         <Link href="/#catalogo" className="label mt-10 inline-flex min-h-11 min-w-11 items-center border-b border-ink">
           Ver el catálogo
@@ -148,6 +173,7 @@ export default function CartPage() {
         {sync === 'error' && <button type="button" onClick={() => void retrySync()} className="meta mt-2 min-h-11 underline underline-offset-4">Reintentar sincronización</button>}
         {!ownerId && <Link href="/cuenta" className="meta mt-2 inline-flex min-h-11 items-center underline underline-offset-4">Iniciá sesión para guardar tu carrito en tu cuenta</Link>}
         {warning && <p role="status" className="mt-4 text-muted">{warning}</p>}
+        {pendingReceipt && <PendingOrderLink href={pendingReceipt} />}
 
         <ul className="mt-10 divide-y divide-line border-y border-line">
           {items.map((item) => {
@@ -221,7 +247,7 @@ export default function CartPage() {
         <dl className="mt-8 space-y-3 text-[1.05rem]">
           <Row label="Subtotal" value={problems.length ? '—' : formatPrice(subtotal)} />
           <Row label="Envío" value={problems.length ? '—' : shipping === 0 ? 'Gratis' : formatPrice(shipping)} />
-          <Row label="Total" value={problems.length ? 'Revisá el carrito' : quoted ? formatPrice(total) : 'Calculando…'} strong />
+          <Row label="Total" value={problems.length ? 'Revisá el carrito' : quoted ? formatPrice(total) : quoteFailed ? 'Sin calcular' : 'Calculando…'} strong />
         </dl>
         {quote.result && !quote.result.ok && (
           <p role="alert" className="mt-4 text-[1rem] italic text-red-800">
@@ -314,7 +340,23 @@ export default function CartPage() {
             {phase === 'sending' ? 'Registrando el pedido…'
               : phase === 'redirecting' ? 'Yendo a Mercado Pago…'
                 : problems.length ? 'Revisá el carrito para seguir'
-                  : quoted ? `Ir a pagar ${formatPrice(total)}` : 'Calculando el total…'}
+                  : quoted ? `Ir a pagar ${formatPrice(total)}`
+                    : quoteFailed ? 'No pudimos calcular el total' : 'Calculando el total…'}
+          </button>
+        )}
+        {phase === 'locked' && (
+          // Salida del bloqueo: si el intento anterior sí quedó registrado, queda como un
+          // pedido sin pagar que vence solo; lo que nunca puede pasar es cobrar dos veces.
+          <button
+            type="button"
+            onClick={() => {
+              setAttempt(null)
+              setPhase('idle')
+              setNotice({ tone: 'info', text: 'Podés corregir los datos y confirmar de nuevo. Si el intento anterior llegó a registrarse, queda sin pagar y no se cobra.' })
+            }}
+            className="label mt-3 inline-flex min-h-11 w-full items-center justify-center text-ink underline underline-offset-4"
+          >
+            Editar el pedido
           </button>
         )}
 
@@ -323,6 +365,15 @@ export default function CartPage() {
         </p>
       </form>
     </section>
+  )
+}
+
+function PendingOrderLink({ href }: { href: string }) {
+  return (
+    <p className="mt-4 text-[1rem] text-muted">
+      Tenés un pedido que empezaste a pagar.{' '}
+      <Link href={href} className="inline-flex min-h-11 items-center text-ink underline underline-offset-4">Ver su estado</Link>
+    </p>
   )
 }
 
