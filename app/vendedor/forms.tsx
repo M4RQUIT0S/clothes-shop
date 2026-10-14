@@ -4,13 +4,23 @@ import { useRef, useState, type FormEvent } from 'react'
 import { MAX_PHOTO_BYTES, MAX_STOCK, PHOTO_TYPES, SIZES } from '@/lib/garment-form'
 import { CATEGORIES, sizesOf, stockFor, type Product } from '@/lib/shop'
 import { browserClient } from '@/lib/supabase/browser'
-import { createGarment, deleteGarment, updateStock, type SellerResult } from './actions'
+import { createGarment, deleteGarment, updateGarment, updateStock, type SellerResult } from './actions'
 
 const FIELD = 'mt-2 min-h-11 w-full border border-line bg-transparent px-3'
 const OFFLINE: SellerResult = { ok: false, error: 'No pudimos conectar. Probá de nuevo.' }
 
 function Status({ result }: { result: SellerResult | null }) {
   return <p role="status" className="mt-4 font-sans text-sm">{result && (result.ok ? result.message : result.error)}</p>
+}
+
+/** Sube la foto al bucket «prendas» con un nombre nuevo y devuelve su ruta, o el error para mostrar. */
+async function uploadPhoto(photo: File): Promise<{ path: string } | { error: string }> {
+  const ext = PHOTO_TYPES[photo.type]
+  if (!ext) return { error: 'La foto tiene que ser JPG, PNG o WebP.' }
+  if (photo.size > MAX_PHOTO_BYTES) return { error: 'La foto pesa más de 5 MB. Usá una más liviana.' }
+  const path = `${crypto.randomUUID()}.${ext}`
+  const { error } = await browserClient().storage.from('prendas').upload(path, photo, { contentType: photo.type })
+  return error ? { error: 'No pudimos subir la foto. Probá de nuevo.' } : { path }
 }
 
 export function GarmentForm() {
@@ -25,17 +35,13 @@ export function GarmentForm() {
     const form = event.currentTarget
     const data = new FormData(form)
     const photo = data.get('photo-file') as File
-    const ext = PHOTO_TYPES[photo.type]
     if (!sizes.length) return setResult({ ok: false, error: 'Elegí al menos un talle.' })
-    if (!ext) return setResult({ ok: false, error: 'La foto tiene que ser JPG, PNG o WebP.' })
-    if (photo.size > MAX_PHOTO_BYTES) return setResult({ ok: false, error: 'La foto pesa más de 5 MB. Usá una más liviana.' })
     setBusy(true); setResult(null)
     try {
       if (uploaded.current?.file !== photo) {
-        const path = `${crypto.randomUUID()}.${ext}`
-        const { error } = await browserClient().storage.from('prendas').upload(path, photo, { contentType: photo.type })
-        if (error) return setResult({ ok: false, error: 'No pudimos subir la foto. Probá de nuevo.' })
-        uploaded.current = { file: photo, path }
+        const upload = await uploadPhoto(photo)
+        if ('error' in upload) return setResult({ ok: false, error: upload.error })
+        uploaded.current = { file: photo, path: upload.path }
       }
       data.delete('photo-file')
       data.set('photo', uploaded.current.path)
@@ -140,5 +146,56 @@ export function GarmentStock({ product }: { product: Stocked }) {
       </fieldset>
       <Status result={result} />
     </form>
+  )
+}
+
+type Editable = Pick<Product, 'id' | 'name' | 'price_cents'>
+
+/** Nombre, precio y foto de una prenda ya publicada. La foto sólo cambia si se elige una nueva. */
+export function GarmentEdit({ product }: { product: Editable }) {
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<SellerResult | null>(null)
+  const file = useRef<HTMLInputElement>(null)
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const photo = data.get('photo-file') as File
+    data.delete('photo-file')
+    setBusy(true); setResult(null)
+    try {
+      if (photo.size) {
+        const upload = await uploadPhoto(photo)
+        if ('error' in upload) return setResult({ ok: false, error: upload.error })
+        data.set('photo', upload.path)
+      }
+      const saved = await updateGarment(data)
+      setResult(saved)
+      if (saved.ok && file.current) file.current.value = ''
+    } catch { setResult(OFFLINE) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <details className="mt-4 font-sans">
+      <summary className="label inline-flex min-h-11 cursor-pointer items-center underline underline-offset-4">Editar nombre, precio y foto</summary>
+      <form onSubmit={submit} className="mt-2 max-w-2xl">
+        <input type="hidden" name="id" value={product.id} />
+        <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+          <legend className="sr-only">Editar {product.name}</legend>
+          <label className="block text-sm">Nombre
+            <input name="name" required minLength={3} maxLength={80} defaultValue={product.name} className={FIELD} />
+          </label>
+          <label className="block text-sm">Precio en pesos
+            <input name="price" type="number" required min={1} max={99999999} step={1} inputMode="numeric" defaultValue={product.price_cents / 100} className={FIELD} />
+          </label>
+          <label className="block text-sm sm:col-span-2">Foto nueva (opcional; si no elegís una, queda la actual)
+            <input ref={file} name="photo-file" type="file" accept={Object.keys(PHOTO_TYPES).join(',')} className={`${FIELD} py-2`} />
+          </label>
+          <button type="submit" className="label min-h-11 border border-ink px-4 sm:w-fit">{busy ? 'Guardando…' : 'Guardar cambios'}</button>
+        </fieldset>
+        <Status result={result} />
+      </form>
+    </details>
   )
 }

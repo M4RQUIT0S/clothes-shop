@@ -17,21 +17,28 @@ export const MAX_STOCK = 9999
 
 /** Nombre → slug de la URL pública: sin tildes ni signos, en minúsculas y con guiones. */
 export const slugify = (name: string) =>
-  name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const units = z.string().regex(/^\d{1,4}$/, `Indicá las unidades de cada talle, de 0 a ${MAX_STOCK}.`).transform(Number)
 
+const name = z.string().trim().min(3, 'El nombre tiene que tener al menos 3 caracteres.').max(80, 'El nombre admite hasta 80 caracteres.')
+  .refine((value) => slugify(value) !== '', 'El nombre tiene que tener letras o números.')
+const price = z.string().regex(/^[1-9]\d{0,7}$/, 'Indicá el precio en pesos, sin centavos ni puntos.').transform((pesos) => Number(pesos) * 100)
+// Ruta dentro del bucket «prendas», con el nombre que le pone el panel al subirla.
+const photo = z.string().regex(/^[0-9a-f-]{36}\.(jpg|png|webp)$/, 'Subí una foto de la prenda.')
+
 const GarmentSchema = z.object({
-  name: z.string().trim().min(3, 'El nombre tiene que tener al menos 3 caracteres.').max(80, 'El nombre admite hasta 80 caracteres.')
-    .refine((name) => slugify(name) !== '', 'El nombre tiene que tener letras o números.'),
+  name,
   description: z.string().trim().min(20, 'La descripción tiene que tener al menos 20 caracteres.').max(600, 'La descripción admite hasta 600 caracteres.'),
-  price: z.string().regex(/^[1-9]\d{0,7}$/, 'Indicá el precio en pesos, sin centavos ni puntos.').transform((pesos) => Number(pesos) * 100),
+  price,
   category: z.string().refine((slug) => CATEGORIES.some((c) => c.slug === slug), 'Elegí una categoría.'),
   color: z.string().regex(/^#[0-9a-f]{6}$/i, 'Elegí el color principal de la prenda.').transform((hex) => hex.toLowerCase()),
-  // Ruta dentro del bucket «prendas», con el nombre que le pone el panel al subirla.
-  photo: z.string().regex(/^[0-9a-f-]{36}\.(jpg|png|webp)$/, 'Subí una foto de la prenda.'),
+  photo,
   stock: z.array(z.object({ size: z.string(), stock: units })).min(1, 'Elegí al menos un talle.'),
 })
+
+// Al editar, la foto es opcional: sin una nueva se conserva la actual.
+const EditSchema = z.object({ name, price, photo: photo.optional() })
 
 export type Garment = {
   slug: string; name: string; description: string; priceCents: number
@@ -52,6 +59,16 @@ export function parseGarment(form: FormData): Parsed<{ garment: Garment }> {
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message }
   const { price, ...garment } = parsed.data
   return { ok: true, garment: { ...garment, slug: slugify(garment.name), priceCents: price } }
+}
+
+export type GarmentEdit = { name: string; priceCents: number; photo?: string }
+
+/** Nombre y precio de una prenda existente, y la foto nueva si se subió una. */
+export function parseGarmentEdit(form: FormData): Parsed<{ edit: GarmentEdit }> {
+  const parsed = EditSchema.safeParse({ name: text(form, 'name'), price: text(form, 'price'), photo: text(form, 'photo') || undefined })
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message }
+  const { price: priceCents, ...edit } = parsed.data
+  return { ok: true, edit: { ...edit, priceCents } }
 }
 
 /** Unidades de cada talle que ya vende la prenda; ninguno puede quedar sin indicar. */

@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { ProductImage } from '@/components/product-image'
 import { CATEGORIES, formatPrice, type Product } from '@/lib/shop'
 import { sellerSession } from '@/lib/supabase/server'
-import { GarmentForm, GarmentStock } from './forms'
+import { GarmentEdit, GarmentForm, GarmentStock } from './forms'
 
 export const metadata: Metadata = { title: 'Panel del vendedor — Hilo', robots: { index: false, follow: false } }
 
-type Listed = Pick<Product, 'id' | 'slug' | 'name' | 'price_cents' | 'category' | 'sizes' | 'product_variants'>
+type Listed = Pick<Product, 'id' | 'slug' | 'name' | 'price_cents' | 'image_url' | 'color' | 'category' | 'sizes' | 'product_variants'>
 
 export default async function SellerPage() {
   const session = await sellerSession()
@@ -24,7 +25,7 @@ export default async function SellerPage() {
 
   const { data, error } = await session.db
     .from('products')
-    .select('id, slug, name, price_cents, category, sizes, product_variants(size, stock)')
+    .select('id, slug, name, price_cents, image_url, color, category, sizes, product_variants(size, stock)')
     .order('created_at', { ascending: false })
   if (error) {
     console.error('Error cargando el catálogo del panel:', error)
@@ -48,13 +49,19 @@ export default async function SellerPage() {
         <ul className="mt-6 divide-y divide-line">
           {products.map((p) => (
             <li key={p.id} className="py-6">
-              <p className="text-lg">
-                <Link href={`/producto/${p.slug}`} className="underline-offset-4 hover:underline">{p.name}</Link>
-              </p>
-              <p className="meta text-muted">
-                {CATEGORIES.find((c) => c.slug === p.category)?.label ?? p.category} · {formatPrice(p.price_cents)}
-              </p>
+              <div className="flex items-center gap-4">
+                <ProductImage src={p.image_url} alt="" color={p.color} sizes="64px" className="h-20 w-16 shrink-0" />
+                <div>
+                  <p className="text-lg">
+                    <Link href={`/producto/${p.slug}`} className="underline-offset-4 hover:underline">{p.name}</Link>
+                  </p>
+                  <p className="meta text-muted">
+                    {CATEGORIES.find((c) => c.slug === p.category)?.label ?? p.category} · {formatPrice(p.price_cents)}
+                  </p>
+                </div>
+              </div>
               <GarmentStock product={p} />
+              <GarmentEdit product={p} />
             </li>
           ))}
         </ul>

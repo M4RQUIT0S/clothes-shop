@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseGarment, parseStock, slugify } from '../lib/garment-form.ts'
+import { parseGarment, parseGarmentEdit, parseStock, slugify } from '../lib/garment-form.ts'
 
 const PHOTO = '0b9e8a52-6c1f-4f7e-9d43-2a5c8e1f7b30.jpg'
 
@@ -56,4 +56,15 @@ test('el stock se pide para todos los talles de la prenda', () => {
   assert.equal(parseStock(form({ 'stock-S': '4' }), ['S', 'M']).ok, false)
   // Prendas de talle único: el talle es '' igual que en el carrito.
   assert.deepEqual(parseStock(form({ 'stock-': '2' }), ['']), { ok: true, stock: [{ size: '', stock: 2 }] })
+})
+
+test('editar exige nombre y precio válidos; la foto nueva es opcional', () => {
+  assert.deepEqual(parseGarmentEdit(form({ name: ' Remera lino ', price: '50000' })),
+    { ok: true, edit: { name: 'Remera lino', priceCents: 5000000, photo: undefined } })
+  assert.deepEqual(parseGarmentEdit(form({ name: 'Remera lino', price: '50000', photo: PHOTO })),
+    { ok: true, edit: { name: 'Remera lino', priceCents: 5000000, photo: PHOTO } })
+  const cases: Record<string, string>[] = [{ name: '' }, { price: '' }, { price: '0' }, { photo: 'https://otro.sitio/foto.jpg' }]
+  for (const bad of cases) {
+    assert.equal(parseGarmentEdit(form({ name: 'Remera lino', price: '50000', ...bad })).ok, false, JSON.stringify(bad))
+  }
 })

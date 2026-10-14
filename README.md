@@ -50,7 +50,9 @@ La integración requiere `.env.development.local` y rechaza URLs externas antes 
 
 ## Panel del vendedor
 
-`/vendedor` permite publicar prendas, cambiar el stock por talle y quitarlas de la tienda.
+`/vendedor` permite publicar prendas, cambiar el stock por talle, editar nombre, precio y foto,
+y quitarlas de la tienda. Al renombrar, la URL de la prenda no cambia: carritos y pedidos la
+identifican por ella.
 Para publicar hay que completar todos los campos: nombre, descripción, precio, categoría,
 color, foto y unidades de cada talle elegido. La base vuelve a exigir nombre, descripción,
 foto y precio aunque se escriba sin pasar por el panel.

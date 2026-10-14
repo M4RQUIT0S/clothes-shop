@@ -95,3 +95,18 @@ test('sólo los vendedores suben fotos, y sólo al bucket de prendas', async () 
   await as(null, async () => { await assert.rejects(upload('prendas'), isCode('42501')) })
   assert.equal(await count('storage.objects'), 1)
 })
+
+test('un vendedor edita nombre, precio y foto; un comprador no, y el precio no baja de la rebaja', async () => {
+  let id = ''
+  await as(SELLER, async () => { id = (await create()).rows[0].id })
+  await db.query('update products set sale_price_cents = 3000000 where id = $1', [id])
+  const edit = (name: string, price: number) => db.query(
+    "update products set name = $2, price_cents = $3, image_url = 'https://x.test/nueva.jpg' where id = $1", [id, name, price])
+  await as(BUYER, async () => { await edit('Hackeada', 100) })
+  await as(SELLER, async () => {
+    await assert.rejects(edit('Remera barata', 2000000), isCode('23514'))
+    await edit('Remera de lino lavado', 5000000)
+  })
+  const row = await db.query('select slug, name, price_cents, image_url from products where id = $1', [id])
+  assert.deepEqual(row.rows, [{ slug: 'remera-lino', name: 'Remera de lino lavado', price_cents: 5000000, image_url: 'https://x.test/nueva.jpg' }])
+})
