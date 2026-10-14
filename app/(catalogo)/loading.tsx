@@ -1,3 +1,5 @@
+// Sólo la portada, por eso vive en el grupo (catalogo). Un loading.tsx que envuelva la
+// ficha la manda en streaming con 200 y una prenda inexistente no puede responder 404.
 export default function Loading() {
   return (
     <section data-route-fallback className="px-6 py-28" aria-busy="true" aria-label="Cargando catálogo">
