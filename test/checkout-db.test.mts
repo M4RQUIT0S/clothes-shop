@@ -16,9 +16,9 @@ after(async () => { await db.close() })
 beforeEach(async () => {
   await db.exec('delete from orders; delete from product_variants; delete from products;')
   await db.exec(`
-    insert into products (slug, name, price_cents, sizes, stock) values
-      ('remera', 'Remera', 1000000, '{M,L}', 99),
-      ('jean', 'Jean', 2000000, '{40}', 99);
+    insert into products (slug, name, description, image_url, price_cents, sizes, stock) values
+      ('remera', 'Remera', 'Algodón', 'https://x.test/remera.jpg', 1000000, '{M,L}', 99),
+      ('jean', 'Jean', 'Denim', 'https://x.test/jean.jpg', 2000000, '{40}', 99);
     insert into product_variants (product_id, size, stock)
       select id, 'M', 2 from products where slug = 'remera' union all
       select id, 'L', 1 from products where slug = 'remera' union all

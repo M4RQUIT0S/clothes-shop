@@ -7,7 +7,8 @@ import { PGlite } from '@electric-sql/pglite'
 const MIGRATIONS = join(import.meta.dirname, '..', '..', 'supabase', 'migrations')
 
 // Roles y permisos por defecto de un proyecto Supabase: service_role salta RLS y las
-// tablas y funciones nuevas de public quedan concedidas a los tres roles.
+// tablas y funciones nuevas de public quedan concedidas a los tres roles. De Storage,
+// sólo las dos tablas sobre las que las migraciones crean buckets y políticas.
 const SUPABASE_ROLES = `
   create role anon nologin;
   create role authenticated nologin;
@@ -19,6 +20,17 @@ const SUPABASE_ROLES = `
   $$;
   grant usage on schema auth to anon, authenticated, service_role;
   grant usage on schema public to anon, authenticated, service_role;
+  create schema storage;
+  create table storage.buckets (
+    id text primary key, name text not null, public boolean not null default false,
+    file_size_limit bigint, allowed_mime_types text[]
+  );
+  create table storage.objects (
+    id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets (id), name text not null
+  );
+  alter table storage.objects enable row level security;
+  grant usage on schema storage to anon, authenticated, service_role;
+  grant select, insert, update, delete on storage.objects to anon, authenticated, service_role;
   alter default privileges in schema public grant select, insert, update, delete on tables to anon, authenticated, service_role;
   alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
 `

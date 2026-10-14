@@ -29,7 +29,8 @@ El esquema completo está en `supabase/migrations/`. Permisos mediante RLS:
 
 | Tabla      | Política pública                                  |
 |------------|---------------------------------------------------|
-| `products`, `product_variants`, `news` | lectura pública |
+| `products`, `product_variants`, `news` | lectura pública; altas, stock y bajas sólo para vendedores |
+| `sellers` | cada cuenta lee sólo su propia fila; se administra desde SQL |
 | `orders`, `cart_operations` | tablas internas, sin acceso directo del comprador |
 | `account_carts` | lectura de la cuenta propietaria; escrituras mediante RPC autenticada |
 
@@ -47,20 +48,34 @@ npm run build
 
 La integración requiere `.env.development.local` y rechaza URLs externas antes de hacer peticiones. Ver evidencia y límites en el [ADR de carritos](docs/decisions/001-carrito-y-cuentas.md) y el [registro de despliegue](docs/deploy-2026-10-10.md).
 
+## Panel del vendedor
+
+`/vendedor` permite publicar prendas, cambiar el stock por talle y quitarlas de la tienda.
+Para publicar hay que completar todos los campos: nombre, descripción, precio, categoría,
+color, foto y unidades de cada talle elegido. La base vuelve a exigir nombre, descripción,
+foto y precio aunque se escriba sin pasar por el panel.
+
+Para dar acceso a una cuenta ya registrada en `/cuenta`, desde el SQL de Supabase:
+
+```sql
+insert into public.sellers (user_id) select id from auth.users where email = 'vendedor@ejemplo.com';
+```
+
+Quitar esa fila retira el acceso. Las fotos se suben al bucket público `prendas` de Supabase
+Storage (JPG, PNG o WebP, hasta 5 MB). En local, Supabase tiene que arrancar con Storage.
+
 ## Fotos de producto
 
-Las imágenes actuales son **fotos de stock de Unsplash a modo de marcador**, servidas
+Las prendas sembradas usan **fotos de stock de Unsplash a modo de marcador**, servidas
 desde `images.unsplash.com` (licencia Unsplash: uso comercial gratuito, sin atribución
-obligatoria). Cada producto guarda su URL en `products.image_url`.
-
-Para poner las fotos definitivas basta con cambiar esa columna. Si las subes a Supabase
-Storage, añade su hostname a `images.remotePatterns` en `next.config.ts`.
+obligatoria). Las que se cargan desde el panel se guardan en Storage. Cada producto guarda
+su URL en `products.image_url`.
 
 ## Configuración y pendientes
 
 En Vercel están configurados Supabase, `SITE_URL` y `RECEIPT_SECRET`. Para habilitar compras faltan `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` y stock real por talle. Para correo de pedidos se requieren `RESEND_API_KEY` y `RESEND_FROM`; para confirmar cuentas públicas, SMTP propio en Supabase Auth. La confirmación de correo sigue activada. No se hicieron pagos ni correos reales en la verificación del despliegue.
 
-Completar también medidas reales e identidad, contacto, retención y otros campos legales marcados Pendiente. Las políticas son borradores con noindex; las fotos y las medidas de referencia siguen siendo marcadores. No hay panel de administración ni historial de pedidos por cuenta.
+Completar también medidas reales e identidad, contacto, retención y otros campos legales marcados Pendiente. Las políticas son borradores con noindex; las fotos y las medidas de referencia siguen siendo marcadores. No hay historial de pedidos por cuenta ni gestión de pedidos en el panel del vendedor.
 
 ## Despliegue
 
